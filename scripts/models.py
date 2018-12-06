@@ -3,12 +3,17 @@ import pandana as pdna
 import pandas as pd
 
 from urbansim.utils import networks
-# Set data directory
+from urbansim_templates import modelmanager as mm
 
+
+# Set data directory
 d = '/home/data/fall_2018/'
 
 if 'data_directory' in orca.list_injectables():
     d = orca.get_injectable('data_directory')
+
+# load existing model steps from the model manager
+mm.initialize()
 
 
 @orca.step()
@@ -107,3 +112,28 @@ def network_aggregations_beam(netbeam):
     nodesbeam = nodesbeam.fillna(0)
     print(nodesbeam.describe())
     orca.add_table('nodesbeam', nodesbeam)
+
+
+@orca.step()
+def wlcm_simulate(persons):
+    """
+    Generate workplace location choices for the synthetic pop. This is just
+    a temporary workaround until the model templates themselves can handle
+    interaction terms. Otherwise the model template would normally not need
+    an addtional orca step wrapper such as is defined here.
+
+    """
+    interaction_terms_tt = pd.read_csv(
+        './data/WLCM_interaction_terms_tt.csv', index_col=[
+            'zone_id_home', 'zone_id_work'])
+    interaction_terms_dist = pd.read_csv(
+        './data/WLCM_interaction_terms_dist.csv', index_col=[
+            'zone_id_home', 'zone_id_work'])
+    interaction_terms_cost = pd.read_csv(
+        './data/WLCM_interaction_terms_cost.csv', index_col=[
+            'zone_id_home', 'zone_id_work'])
+
+    m = mm.get_step('WLCM')
+
+    m.run(chooser_batch_size=200000, interaction_terms=[
+        interaction_terms_tt, interaction_terms_dist, interaction_terms_cost])
