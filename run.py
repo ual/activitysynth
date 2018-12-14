@@ -11,6 +11,6 @@ warnings.simplefilter('ignore')
 model_steps = [
     'initialize_network_small', 'initialize_network_walk',
     'network_aggregations_small', 'network_aggregations_walk',
-    'WLCM']
+    'wlcm_simulate']
 
 orca.run(model_steps)
