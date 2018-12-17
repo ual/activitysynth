@@ -5,6 +5,7 @@ import scipy.stats as st
 
 from urbansim.utils import networks
 from urbansim_templates import modelmanager as mm
+from urbansim_templates.models import LargeMultinomialLogitStep
 
 
 # Set data directory
