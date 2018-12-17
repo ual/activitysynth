@@ -7,6 +7,6 @@ mm.initialize()
 model_steps = [
     'initialize_network_small', 'initialize_network_walk',
     'network_aggregations_small', 'network_aggregations_walk',
-    'WLCM']
+    'WLCM', 'TOD_choice_simulate','TOD_distribution_simulate']
 
 orca.run(model_steps)
