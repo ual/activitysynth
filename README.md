@@ -31,7 +31,7 @@ pip install git+git://github.com/udst/urbansim_templates.git
 ```
 The demo notebook [here](https://github.com/ual/activitysynth/blob/master/notebooks/run_all_demo.ipynb) provides a step-by-step walkthrough of what a typical activitysynth implementation should look like.
 
-In practice, once the required data inputs and model configurations are in place, a full simulation can be executed in the following two lines of code:
+In practice, once the required data inputs and model configurations are in place, a full simulation can be executed with the following few lines of code:
 ```
 import orca
 import warnings
@@ -43,6 +43,7 @@ from scripts import models, datasources, variables
 warnings.simplefilter('ignore')
 
 if __name__ == "__main__":
+
     model_steps = [
         'initialize_network_small', 'initialize_network_walk',
         'network_aggregations_small', 'network_aggregations_walk',
