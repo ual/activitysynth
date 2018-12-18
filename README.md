@@ -53,3 +53,18 @@ if __name__ == "__main__":
 
     orca.run(model_steps)
 ```
+
+
+______________________________________
+## Work plan
+ - WLCM
+   - [ ] refactor for work-at-home-aware synthetic population
+   - [ ] distance-based weighted sampling of alternatives
+ - Mode choice
+   - [ ] fully template-ized implementation (requires support for interaction terms in small MNL template)
+ - TOD choice
+   - [ ] fully template-ized implementation (requires support for interaction terms in small MNL template)
+ - SLCM
+   - [ ] initial implementation
+ - Discretionary trips
+   - [ ] initial implementation
