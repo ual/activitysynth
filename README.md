@@ -1,5 +1,5 @@
 # activitysynth
-library for lightweight generation of activity plans
+library for lightweight generation of daily activity plans for a synthetic population
 
 ## What is it?
 This repository was designed in partial satisfaction of the FY19 Q1 deliverable for the U.S. Department of Energy SMART Mobility Urban Science Pillar task 2.2.2: Coupling Land Use Models and Network Flow Models, led by PI Paul Waddell at UC Berkeley.
