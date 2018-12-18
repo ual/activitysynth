@@ -29,7 +29,14 @@ activitysynth makes heavy use of both the [Orca](https://github.com/UDST/orca) d
 pip install git+git://github.com/udst/choicemodels.git
 pip install git+git://github.com/udst/urbansim_templates.git
 ```
-The demo notebook [here](https://github.com/ual/activitysynth/blob/master/notebooks/run_all_demo.ipynb) provides a step-by-step walkthrough of what a typical activitysynth implementation should look like.
+
+## How to use it:
+
+#### Model estimation
+Each individual model must first be estimated from data and "registered" as a model step with the urbansim_templates `modelmanager`. By registering a model, the user tells urbansim_templates to save the model specification and fitted parameters to a .yaml configuration file in the `configs/` directory of this repository. An example of how this process works can be seen in the workplace location choice model estimation notebook [here](https://github.com/ual/activitysynth/blob/master/notebooks/WLCM_estimation.ipynb).
+
+#### Simulation
+Once the models have been fitted and registered, the simulation process is very straightforward. 
 
 In practice, once the required data inputs and model configurations are in place, a full simulation can be executed with the following few lines of code:
 ```
@@ -52,3 +59,4 @@ if __name__ == "__main__":
 
     orca.run(model_steps)
 ```
+A demo notebook [here](https://github.com/ual/activitysynth/blob/master/notebooks/run_all_demo.ipynb) provides a step-by-step walkthrough of what a typical activitysynth implementation should look like.
