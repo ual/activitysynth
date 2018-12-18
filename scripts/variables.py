@@ -244,7 +244,6 @@ def zone_id_home(persons, households, units, buildings, parcels):
         persons.household_id).astype(float)
 
 
-
 #########################################
 #      Auto ownership dummy columns     #
 #########################################
@@ -275,11 +274,63 @@ def building_type_2(households):
     return (households['building_type'] == 2).astype(int)
 
 
+###########################
+#  TOD choice dummy vars  #
+###########################
+@orca.column('households')
+def hh_inc_150kplus(households):
+    return((
+        households['income'] > 150000) | (
+        households['income'] == 150000)).astype(int)
 
+@orca.column('persons')
+def lessGED(persons):
+    return(persons['edu'] < 16).astype(int)
 
+@orca.column('persons')
+def GED(persons):
+    return(persons['edu'].isin([16,17])).astype(int)
 
+@orca.column('persons')
+def somebach(persons):
+    return(persons['edu'].isin([16,17])).astype(int)
 
+@orca.column('persons')
+def Assoc(persons):
+    return(persons['edu'].isin([20])).astype(int)
+           
+@orca.column('persons')
+def Bach(persons):
+    return(persons['edu'].isin([21])).astype(int)
+           
+@orca.column('persons')
+def female(persons):
+    return (persons['sex'] - 1)
+           
+@orca.column('persons')
+def white(persons):
+    return(persons['race_id'].isin([1.0])).astype(int)
 
-
-
-
+@orca.column('persons')
+def minority(persons):
+    return(persons['white'].isin([0.0])).astype(int)
+           
+@orca.column('persons')
+def age_16less25(persons):
+    return((persons.age.between(16,25,inclusive = False)) | (persons.age==16)).astype(int)
+           
+@orca.column('households')
+def hh_size_1per(households):
+    return(households.persons.isin([1.0])).astype(int)
+           
+@orca.column('jobs')
+def finance(jobs):
+    return jobs['sector_id'].isin([52]).astype(int)
+           
+@orca.column('jobs')
+def info(jobs):
+    return jobs['sector_id'].isin([51]).astype(int)
+           
+@orca.column('jobs')
+def scitech(jobs):
+    return jobs['sector_id'].isin([54]).astype(int)
