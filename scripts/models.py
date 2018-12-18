@@ -117,7 +117,7 @@ def network_aggregations_beam(netbeam):
 
 
 @orca.step()
-def wlcm_simulate(persons):
+def wlcm_simulate():
     """
     Generate workplace location choices for the synthetic pop. This is just
     a temporary workaround until the model templates themselves can handle
@@ -139,8 +139,11 @@ def wlcm_simulate(persons):
 
     m.run(chooser_batch_size=200000, interaction_terms=[
         interaction_terms_tt, interaction_terms_dist, interaction_terms_cost])
-    
-    
+
+    orca.broadcast(
+        'jobs', 'persons', cast_index=True, onto_on='job_id')
+
+
 @orca.step()
 def TOD_choice_simulate():
     """
@@ -148,34 +151,7 @@ def TOD_choice_simulate():
     home-work and work-home trips.
     
     """
-    TOD_obs = orca.merge_tables('persons', ['persons','jobs'])
-    
-#     TOD_obs = pd.read_csv('./data/persons_w_jobs.csv')
-#     TOD_obs.index.name = 'TOD_obs_id'
-    
-#     jobs = pd.read_csv('/home/data/fall_2018/jobs_v2.csv')
-#     hh = pd.read_csv('/home/data/fall_2018/households_v2.csv')
-#     buildings = pd.read_csv('/home/data/fall_2018/buildings_v2.csv')
-#     parcels = pd.read_csv('/home/data/fall_2018/parcel_attr.csv')
-    
-#     merge = buildings.merge(parcels,how = 'left',left_on='parcel_id',
-#                             right_on='primary_id')
-
-#     jobs = jobs.merge(merge,on = 'building_id',how = 'left').rename(columns={'zone_id': 
-#                                                                           'zone_id_work'})
-
-#     hh = hh.merge(merge,on = 'building_id',how = 'left').rename(columns={'zone_id':
-#                                                                          'zone_id_home'})
-    
-#     TOD_obs = TOD_obs.merge(jobs,on = 'job_id',how = 'left')
-
-#     TOD_obs = TOD_obs.merge(hh,on = 'household_id',how = 'left')
-    
-    TOD_obs = TOD_obs[[
-        'zone_id_home', 'zone_id_work',
-        'age', 'edu', 'sex','hours','hispanic','race_id',
-        'income','persons',
-        'sector_id','occupation_id']]
+    TOD_obs = orca.merge_tables('persons', ['persons', 'households', 'jobs'])
     
     TOD_obs.dropna(inplace = True)
     
@@ -195,44 +171,6 @@ def TOD_choice_simulate():
         for tod2 in TOD_list:
             col_name = f'da_Time_{tod1}_{tod2}'
             TOD_obs[col_name] = TOD_obs[f'da_Time_{tod1}_HW'] + TOD_obs[f'da_Time_{tod2}_WH']
-    
-    TOD_obs = TOD_obs[[
-        'zone_id_home', 'zone_id_work',
-        'age', 'edu', 'sex','hours','hispanic','race_id',
-        'income','persons',
-        'sector_id','occupation_id',    
-        'da_Time_AM_MD',
-        'da_Time_AM_PM',
-        'da_Time_AM_EV',
-        'da_Time_MD_MD',
-        'da_Time_MD_PM',
-        'da_Time_MD_EV']]
-    
-#     TOD_obs['hh_inc_150kplus'] = ((TOD_obs['income'] > 150000) | (TOD_obs['income'] == 150000)).astype(int)
-
-#     TOD_obs['lessGED'] = (TOD_obs['edu'] < 16).astype(int)
-#     TOD_obs['GED'] = TOD_obs['edu'].isin([16,17]).astype(int)
-#     TOD_obs['somebach'] = TOD_obs['edu'].isin([18,19]).astype(int)
-#     TOD_obs['Assoc'] = TOD_obs['edu'].isin([20]).astype(int)
-#     TOD_obs['Bach'] = TOD_obs['edu'].isin([21]).astype(int)
-
-#     TOD_obs['female'] = TOD_obs['sex'] - 1
-
-#     TOD_obs['white'] = TOD_obs['race_id'].isin([1.0]).astype(int)
-#     TOD_obs['minority'] = (TOD_obs['white'] == 1).astype(int)
-#     TOD_obs['age_16less25'] = ((TOD_obs.age.between(16,25,inclusive = False)) | (TOD_obs.age==16)).astype(int)
-#     TOD_obs['hh_size_1per'] = TOD_obs.persons.isin([1.0]).astype(int)
-
-#     TOD_obs['sector_retail'] = TOD_obs['sector_id'].isin([44, 45]).astype(int)
-#     TOD_obs['sector_healthcare'] = TOD_obs['sector_id'].isin([62]).astype(int)
-#     TOD_obs['info'] = TOD_obs['sector_id'].isin([51]).astype(int)
-#     TOD_obs['scitech'] = TOD_obs['sector_id'].isin([54]).astype(int)
-#     TOD_obs['sector_mfg'] = TOD_obs['sector_id'].isin([31, 32, 33]).astype(int)
-#     TOD_obs['sector_edu_serv'] = TOD_obs['sector_id'].isin([61]).astype(int)
-#     TOD_obs['sector_oth_serv'] = TOD_obs['sector_id'].isin([81]).astype(int)
-#     TOD_obs['sector_constr'] = TOD_obs['sector_id'].isin([23]).astype(int)
-#     TOD_obs['sector_gov'] = TOD_obs['sector_id'].isin([92]).astype(int)
-#     TOD_obs['finance'] = TOD_obs['sector_id'].isin([52]).astype(int)
 
     TOD_obs['TOD'] = None
     
@@ -436,3 +374,76 @@ def TOD_distribution_simulate():
     
     persons = pd.merge(persons, TOD_obs2[['HW_ST','WH_ST']], left_index=True, right_index=True)
     orca.add_table('persons', persons)
+
+
+@orca.step()
+def generate_activity_plans():
+
+    persons = orca.get_table('persons').to_frame().reset_index().rename(
+        columns={'index': 'person_id'})
+
+    job_coords = orca.merge_tables('jobs', ['jobs', 'buildings', 'parcels'])
+    job_coords = job_coords[['x', 'y']]
+
+    hh_coords = orca.merge_tables(
+        'households', ['households', 'units', 'buildings', 'parcels'])
+    hh_coords = hh_coords[['x', 'y']]
+
+    trips = persons[[
+        'person_id', 'household_id', 'job_id', 'HW_ST',
+        'WH_ST']].rename(
+            columns={'HW_ST': 'Home', 'WH_ST': 'Work'})
+
+    trip_data = trips.merge(
+        hh_coords, left_on='household_id', right_index=True).merge(
+        job_coords, left_on='job_id', right_index=True,
+        suffixes=('_home', '_work'))
+    trip_data = trip_data[[
+        'person_id', 'Home', 'Work', 'x_home', 'y_home', 'x_work',
+        'y_work']]
+
+    melted = trip_data.melt(
+        id_vars=['person_id', 'x_home', 'y_home', 'x_work', 'y_work'],
+        var_name='activityType', value_name='endTime')
+    melted['x'] = None
+    melted['y'] = None
+    melted.loc[melted['activityType'] == 'Home', 'x'] = melted.loc[
+        melted['activityType'] == 'Home', 'x_home']
+    melted.loc[melted['activityType'] == 'Home', 'y'] = melted.loc[
+        melted['activityType'] == 'Home', 'y_home']
+    melted.loc[melted['activityType'] == 'Work', 'x'] = melted.loc[
+        melted['activityType'] == 'Work', 'x_work']
+    melted.loc[melted['activityType'] == 'Work', 'y'] = melted.loc[
+        melted['activityType'] == 'Work', 'y_work']
+
+    plans = melted.sort_values(['person_id', 'endTime'])[[
+        'person_id', 'activityType', 'endTime', 'x',
+        'y']].reset_index(drop=True)
+    plans['planElement'] = 'activity'
+    plans['planElementIndex'] = plans.groupby('person_id').cumcount() * 2 + 1
+
+    returnActivity = plans[plans['planElementIndex'] == 1]
+    returnActivity.loc[:, 'planElementIndex'] = 5
+    returnActivity.loc[:, 'endTime'] = ''
+
+    plans = plans.append(
+        returnActivity, ignore_index=True).sort_values(
+        ['person_id', 'planElementIndex'])
+
+    legs = plans[plans['planElementIndex'].isin([1, 3])]
+    legs.loc[:, 'planElementIndex'] = legs.loc[:, 'planElementIndex'] + 1
+    legs.loc[:, 'activityType'] = ''
+    legs.loc[:, 'endTime'] = ''
+    legs.loc[:, 'x'] = ''
+    legs.loc[:, 'y'] = ''
+    legs.loc[:, 'planElement'] = 'leg'
+
+    plans = plans.append(legs, ignore_index=True).sort_values(
+        ['person_id', 'planElementIndex']).rename(
+        columns={'person_id': 'personId'}).reset_index(
+        drop=True)
+    plans = plans[[
+        'personId', 'planElement', 'planElementIndex', 'activityType',
+        'x', 'y', 'endTime']]
+    # plans.loc[plans['planElement'] == 'activity', 'mode'] = ''
+    plans.to_csv('./data/urbansim_beam_plans.csv', index=False)
