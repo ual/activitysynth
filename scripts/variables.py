@@ -1,6 +1,8 @@
 import orca
 from urbansim.utils import misc
 
+import pandas as pd
+
 ############################
 # small drive network vars #
 ############################
@@ -240,3 +242,44 @@ def zone_id_home(persons, households, units, buildings, parcels):
             households, [households, units, buildings, parcels],
             columns=['zone_id'])['zone_id'],
         persons.household_id).astype(float)
+
+
+
+#########################################
+#      Auto ownership dummy columns     #
+#########################################
+
+
+@orca.column('households')
+def tenure_1(households):
+    return (households['tenure'] == 1).astype(int)
+
+@orca.column('households')
+def tenure_2(households):
+    return (households['tenure'] == 2).astype(int)
+
+@orca.column('households')
+def tenure_3(households):
+    return (households['tenure'] == 3).astype(int)
+
+@orca.column('households')
+def tenure_4(households):
+    return (households['tenure'] == 4).astype(int)
+
+@orca.column('households')
+def single_family_int(households):
+    return households['single_family'].astype(int)
+
+@orca.column('households')
+def building_type_2(households):
+    return (households['building_type'] == 2).astype(int)
+
+
+
+
+
+
+
+
+
+
