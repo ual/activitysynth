@@ -29,7 +29,6 @@ activitysynth makes heavy use of both the [Orca](https://github.com/UDST/orca) d
 pip install git+git://github.com/udst/choicemodels.git
 pip install git+git://github.com/udst/urbansim_templates.git
 ```
-The demo notebook [here](https://github.com/ual/activitysynth/blob/master/notebooks/run_all_demo.ipynb) provides a step-by-step walkthrough of what a typical activitysynth implementation should look like.
 
 In practice, once the required data inputs and model configurations are in place, a full simulation can be executed with the following few lines of code:
 ```
@@ -53,7 +52,7 @@ if __name__ == "__main__":
 
     orca.run(model_steps)
 ```
-
+This [demo notebook](https://github.com/ual/activitysynth/blob/master/notebooks/run_all_demo.ipynb) provides an annotated walkthrough of what a typical activitysynth implementation should look like one step at a time.
 
 ______________________________________
 ## Work plan
