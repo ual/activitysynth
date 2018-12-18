@@ -48,7 +48,7 @@ if __name__ == "__main__":
         'initialize_network_small', 'initialize_network_walk',
         'network_aggregations_small', 'network_aggregations_walk',
         'wlcm_simulate', 'TOD_choice_simulate',
-        'TOD_distribution_simulate']
+        'TOD_distribution_simulate', 'generate_activity_plans']
 
     orca.run(model_steps)
 ```
