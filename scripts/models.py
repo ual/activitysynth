@@ -140,8 +140,153 @@ def wlcm_simulate():
     m.run(chooser_batch_size=200000, interaction_terms=[
         interaction_terms_tt, interaction_terms_dist, interaction_terms_cost])
 
+
+@orca.step()
+def auto_ownership_simulate(households):
+    """
+    Generate auto ownership choices for the synthetic pop households. The categories are:
+    - 0: no vehicle
+    - 1: one vehicle
+    - 2: two vehicles
+    - 3: three or more vehicles
+    """
+    
+    
+    # income bin dummies
+    income_bins = pd.cut(orca.get_table('households').to_frame().income,
+      bins = [0,20000,40000,60000,80000,100000,120000,np.inf],
+      labels = ['2','4','6','8','10','12','12p'],include_lowest = True)
+
+    income_bin_dummies = pd.get_dummies(income_bins,prefix = 'income')
+
+    for i in income_bin_dummies.columns:
+        orca.add_column('households',i,income_bin_dummies[i])
+    
+    
+    # load UrbanAccess transit accessibility variables
+    parcels = orca.get_table('parcels').to_frame()
+    am_acc = pd.read_csv('./data/urbanaccess_transit/access_indicators_ampeak.csv',dtype = {'block_id':str})
+    am_acc.block_id = am_acc.block_id.str.zfill(15)
+    parcels_with_acc = parcels.merge(am_acc, how='left', on='block_id').reindex(index = parcels.index) # reorder to align with parcels table
+    
+    for acc_col in set(parcels_with_acc.columns) - set(parcels):
+        # fill NA with median value
+        orca.add_column('parcels',acc_col,
+         parcels_with_acc[acc_col].fillna(parcels_with_acc[acc_col].median())
+                   )
+    
+    @orca.table(cache=False)
+    def hh_merged():
+        df = orca.merge_tables(target = 'households',tables = ['households','units','buildings','parcels'
+                                                          ,'nodessmall','nodeswalk'])
+        return df
+    
+    m = mm.get_step('auto_ownership')
+    
+    # remove filters, specify out table, out column
+    
+    m.filters = None
+    m.out_table = 'households'
+    m.out_column = 'cars_alt'
+    
+    m.run()
+    
     orca.broadcast(
         'jobs', 'persons', cast_index=True, onto_on='job_id')
+
+
+@orca.step()
+def primary_mode_choice_simulate(persons):
+    """
+    Generate primary mode choices for the synthetic population. The choices are:
+    - 0: drive alone
+    - 1: shared
+    - 2: walk-transit-walk
+    - 3: drive-transit-walk
+    - 4: walk-transit-drive
+    - 5: bike
+    - 6: walk
+    """    
+    @orca.table()
+    def persons_CHTS_format():
+    # use persons with jobs for persons
+        persons_with_job = pd.read_csv('./data/persons_w_jobs.csv')
+        persons_with_TOD = orca.get_table('persons').to_frame().reset_index()[['person_id','TOD']] # The TOD column does not yet exist, and will depend on Emma's TOD choice model
+
+        hh_df = orca.get_table('households').to_frame().reset_index()[['household_id','cars','tenure','income','persons','building_id']]
+        jobs_df = orca.get_table('jobs').to_frame().reset_index()[['job_id','building_id']]
+        buildings_df = orca.get_table('buildings').to_frame().reset_index()[['building_id','parcel_id']]
+        parcels_df = orca.get_table('parcels').to_frame().reset_index()[['primary_id','zone_id']]
+        parcels_df.rename(columns = {'primary_id':'parcel_id'}, inplace = True)
+
+        persons_with_job = persons_with_job[['person_id','sex','age','race_id','worker','edu','household_id','job_id']]
+
+        # merge time of day
+        persons_with_job= persons_with_job.merge(persons_with_TOD, how = 'left', on = 'person_id')
+
+        # rename columns/change values to match CHTS
+        persons_with_job.columns = ['person_id','GEND','AGE','RACE1','JOBS','EDUCA','household_id','job_id','TOD']
+        persons_with_job.RACE1 = persons_with_job.RACE1.map({1:1,2:2,3:3,4:3,5:3,6:4,7:5,8:97,9:97})
+        persons_with_job.EDUCA = persons_with_job.EDUCA.map({0:1,1:1,2:1,3:1,4:1,5:1,6:1,7:1,8:1,9:1,
+                                                            10:1,11:1,12:1,13:1,14:1,15:1,16:2,17:2,18:3,19:3,
+                                                            20:4,21:5,22:6,23:6,24:6})
+        persons_with_job.TOD = persons_with_job.TOD.map({2:'EA',3:'EA',12:'AM',14:'AM',22:'MD',23:'MD',24:'MD'})
+
+        # read skim
+        skim = pd.read_csv('./data/skims_110118.csv',index_col = 0)
+
+        EA_skim = skim[['orig','dest']+list(skim.filter(like = 'EA').columns)]
+        EA_skim.columns = EA_skim.columns.str.replace('_EA','')
+        EA_skim['TOD'] = 'EA'
+        AM_skim = skim[['orig','dest']+list(skim.filter(like = 'AM').columns)]
+        AM_skim.columns = AM_skim.columns.str.replace('_AM','')
+        AM_skim['TOD'] = 'AM'
+        MD_skim = skim[['orig','dest']+list(skim.filter(like = 'MD').columns)]
+        MD_skim.columns = MD_skim.columns.str.replace('_MD','')
+        MD_skim['TOD'] = 'MD'
+
+        skim_combined = pd.concat([EA_skim,AM_skim,MD_skim])
+
+        MTC_acc = pd.read_csv('./data/MTC_TAZ_accessibility.csv')
+
+        # merge attributes onto persons
+        # want household as origin zone and job as destination zone.
+
+        hh_df = hh_df.merge(buildings_df, how = 'left', on = 'building_id').merge(parcels_df, how = 'left', on = 'parcel_id')
+        hh_df.rename(columns = {'zone_id':'orig'},inplace = True)
+
+        jobs_df = jobs_df.merge(buildings_df,how = 'left', on = 'building_id').merge(parcels_df, how = 'left', on = 'parcel_id')
+        jobs_df.rename(columns = {'zone_id':'dest'}, inplace = True)
+
+        persons_with_job = persons_with_job.merge(hh_df, how = 'left', on = 'household_id')
+        persons_with_job.drop(['building_id','parcel_id'],axis = 1,inplace = True)
+
+        persons_with_job = persons_with_job.merge(jobs_df, how = 'inner',on = 'job_id')
+        persons_with_job.drop(['building_id','parcel_id'],axis = 1,inplace = True)
+
+
+        persons_with_job = persons_with_job.merge(MTC_acc, how = 'left',left_on = 'orig', right_on = 'taz1454')
+        persons_with_job[MTC_acc.columns] = persons_with_job[MTC_acc.columns].fillna(0)
+
+        persons_with_job = persons_with_job.merge(skim_combined, how = 'left', on = ['orig','dest','TOD'])
+
+        
+        # rename the remaning attributes
+        persons_with_job['OWN'] = (persons_with_job['tenure']==1).astype(int)
+        persons_with_job.rename(columns = {'cars':'HHVEH','income':'INCOM','persons':'HHSIZ'},inplace = True)
+        return persons_with_job
+    
+    
+    m = mm.get_step('primary_mode_choice')
+    
+    # remove filters, specify out table, out column
+    
+    m.filters = None
+    m.tables = ['persons_CHTS_format']
+    m.out_table = 'persons_CHTS_format'
+    m.out_column = 'primary_commute_mode'
+    
+    m.run()
 
 
 @orca.step()
