@@ -1,5 +1,5 @@
 # activitysynth
-library for lightweight generation of activity plans
+library for lightweight generation of daily activity plans for a synthetic population
 
 ## What is it?
 This repository was designed in partial satisfaction of the FY19 Q1 deliverable for the U.S. Department of Energy SMART Mobility Urban Science Pillar task 2.2.2: Coupling Land Use Models and Network Flow Models, led by PI Paul Waddell at UC Berkeley.
@@ -29,7 +29,6 @@ activitysynth makes heavy use of both the [Orca](https://github.com/UDST/orca) d
 pip install git+git://github.com/udst/choicemodels.git
 pip install git+git://github.com/udst/urbansim_templates.git
 ```
-The demo notebook [here](https://github.com/ual/activitysynth/blob/master/notebooks/run_all_demo.ipynb) provides a step-by-step walkthrough of what a typical activitysynth implementation should look like.
 
 In practice, once the required data inputs and model configurations are in place, a full simulation can be executed with the following few lines of code:
 ```
@@ -48,7 +47,23 @@ if __name__ == "__main__":
         'initialize_network_small', 'initialize_network_walk',
         'network_aggregations_small', 'network_aggregations_walk',
         'wlcm_simulate', 'TOD_choice_simulate',
+        'auto_ownership_simulate', 'primary_mode_choice_simulate',
         'TOD_distribution_simulate', 'generate_activity_plans']
 
     orca.run(model_steps)
 ```
+This [demo notebook](https://github.com/ual/activitysynth/blob/master/notebooks/run_all_demo.ipynb) provides an annotated walkthrough of what a typical activitysynth implementation should look like one step at a time.
+
+______________________________________
+## Work plan
+ - WLCM
+   - [ ] refactor for work-at-home-aware synthetic population
+   - [ ] distance-based weighted sampling of alternatives
+ - Mode choice
+   - [ ] fully template-ized implementation (requires support for interaction terms in small MNL template)
+ - TOD choice
+   - [ ] fully template-ized implementation (requires support for interaction terms in small MNL template)
+ - SLCM
+   - [ ] initial implementation
+ - Discretionary trips
+   - [ ] initial implementation
