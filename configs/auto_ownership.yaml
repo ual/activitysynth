@@ -205,6 +205,10 @@ saved_object:
         \    9.91e-05\njobs_15_2              1.863e-05   3.56e-05      0.523    \
         \  0.601   -5.11e-05    8.84e-05\njobs_15_3                5.1e-05    3.9e-05\
         \      1.308      0.191   -2.54e-05       0.000\n========================================================================================="
+    supplemental_objects:
+    -   content_type: pickle
+        name: model-object
+        required: true
     tables: hh_merged
     tags:
     - auto
