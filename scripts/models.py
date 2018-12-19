@@ -2,6 +2,7 @@ import orca
 import pandana as pdna
 import pandas as pd
 import scipy.stats as st
+import numpy as np
 
 from urbansim.utils import networks
 from urbansim_templates import modelmanager as mm
@@ -140,6 +141,9 @@ def wlcm_simulate():
     m.run(chooser_batch_size=200000, interaction_terms=[
         interaction_terms_tt, interaction_terms_dist, interaction_terms_cost])
 
+    orca.broadcast(
+        'jobs', 'persons', cast_index=True, onto_on='job_id')
+
 
 @orca.step()
 def auto_ownership_simulate(households):
@@ -153,19 +157,20 @@ def auto_ownership_simulate(households):
     
     
     # income bin dummies
-    income_bins = pd.cut(orca.get_table('households').to_frame().income,
-      bins = [0,20000,40000,60000,80000,100000,120000,np.inf],
-      labels = ['2','4','6','8','10','12','12p'],include_lowest = True)
+    income_bins = pd.cut(
+        orca.get_table('households').to_frame().income,
+        bins=[0, 20000, 40000, 60000, 80000, 100000, 120000, np.inf],
+        labels=['2', '4', '6', '8', '10', '12', '12p'], include_lowest=True)
 
-    income_bin_dummies = pd.get_dummies(income_bins,prefix = 'income')
+    income_bin_dummies = pd.get_dummies(income_bins, prefix='income')
 
     for i in income_bin_dummies.columns:
-        orca.add_column('households',i,income_bin_dummies[i])
+        orca.add_column('households', i, income_bin_dummies[i])
     
     
     # load UrbanAccess transit accessibility variables
     parcels = orca.get_table('parcels').to_frame()
-    am_acc = pd.read_csv('./data/urbanaccess_transit/access_indicators_ampeak.csv',dtype = {'block_id':str})
+    am_acc = pd.read_csv('./data/access_indicators_ampeak.csv',dtype = {'block_id':str})
     am_acc.block_id = am_acc.block_id.str.zfill(15)
     parcels_with_acc = parcels.merge(am_acc, how='left', on='block_id').reindex(index = parcels.index) # reorder to align with parcels table
     
@@ -190,9 +195,6 @@ def auto_ownership_simulate(households):
     m.out_column = 'cars_alt'
     
     m.run()
-    
-    orca.broadcast(
-        'jobs', 'persons', cast_index=True, onto_on='job_id')
 
 
 @orca.step()
@@ -210,7 +212,7 @@ def primary_mode_choice_simulate(persons):
     @orca.table()
     def persons_CHTS_format():
     # use persons with jobs for persons
-        persons_with_job = pd.read_csv('./data/persons_w_jobs.csv')
+        persons_with_job = orca.get_table('persons').to_frame()
         persons_with_TOD = orca.get_table('persons').to_frame().reset_index()[['person_id','TOD']] # The TOD column does not yet exist, and will depend on Emma's TOD choice model
 
         hh_df = orca.get_table('households').to_frame().reset_index()[['household_id','cars','tenure','income','persons','building_id']]
