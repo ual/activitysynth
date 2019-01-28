@@ -212,8 +212,10 @@ def primary_mode_choice_simulate(persons):
     @orca.table()
     def persons_CHTS_format():
     # use persons with jobs for persons
-        persons_with_job = orca.get_table('persons').to_frame()
-        persons_with_TOD = orca.get_table('persons').to_frame().reset_index()[['person_id','TOD']] # The TOD column does not yet exist, and will depend on Emma's TOD choice model
+        persons = orca.get_table('persons').to_frame()
+        persons.index.name = 'person_id'
+        persons.reset_index(inplace=True)
+        persons = persons[['person_id','sex','age','race_id','worker','edu','household_id','job_id', 'TOD']]
 
         hh_df = orca.get_table('households').to_frame().reset_index()[['household_id','cars','tenure','income','persons','building_id']]
         jobs_df = orca.get_table('jobs').to_frame().reset_index()[['job_id','building_id']]
@@ -221,18 +223,13 @@ def primary_mode_choice_simulate(persons):
         parcels_df = orca.get_table('parcels').to_frame().reset_index()[['primary_id','zone_id']]
         parcels_df.rename(columns = {'primary_id':'parcel_id'}, inplace = True)
 
-        persons_with_job = persons_with_job[['person_id','sex','age','race_id','worker','edu','household_id','job_id']]
-
-        # merge time of day
-        persons_with_job= persons_with_job.merge(persons_with_TOD, how = 'left', on = 'person_id')
-
         # rename columns/change values to match CHTS
-        persons_with_job.columns = ['person_id','GEND','AGE','RACE1','JOBS','EDUCA','household_id','job_id','TOD']
-        persons_with_job.RACE1 = persons_with_job.RACE1.map({1:1,2:2,3:3,4:3,5:3,6:4,7:5,8:97,9:97})
-        persons_with_job.EDUCA = persons_with_job.EDUCA.map({0:1,1:1,2:1,3:1,4:1,5:1,6:1,7:1,8:1,9:1,
+        persons.columns = ['person_id','GEND','AGE','RACE1','JOBS','EDUCA','household_id','job_id', 'TOD']
+        persons.RACE1 = persons.RACE1.map({1:1,2:2,3:3,4:3,5:3,6:4,7:5,8:97,9:97})
+        persons.EDUCA = persons.EDUCA.map({0:1,1:1,2:1,3:1,4:1,5:1,6:1,7:1,8:1,9:1,
                                                             10:1,11:1,12:1,13:1,14:1,15:1,16:2,17:2,18:3,19:3,
                                                             20:4,21:5,22:6,23:6,24:6})
-        persons_with_job.TOD = persons_with_job.TOD.map({2:'EA',3:'EA',12:'AM',14:'AM',22:'MD',23:'MD',24:'MD'})
+        persons.TOD = persons.TOD.map({2:'EA',3:'EA',12:'AM',14:'AM',22:'MD',23:'MD',24:'MD'})
 
         # read skim
         skim = pd.read_csv('./data/skims_110118.csv',index_col = 0)
@@ -260,23 +257,23 @@ def primary_mode_choice_simulate(persons):
         jobs_df = jobs_df.merge(buildings_df,how = 'left', on = 'building_id').merge(parcels_df, how = 'left', on = 'parcel_id')
         jobs_df.rename(columns = {'zone_id':'dest'}, inplace = True)
 
-        persons_with_job = persons_with_job.merge(hh_df, how = 'left', on = 'household_id')
-        persons_with_job.drop(['building_id','parcel_id'],axis = 1,inplace = True)
+        persons = persons.merge(hh_df, how = 'left', on = 'household_id')
+        persons.drop(['building_id','parcel_id'],axis = 1,inplace = True)
 
-        persons_with_job = persons_with_job.merge(jobs_df, how = 'inner',on = 'job_id')
-        persons_with_job.drop(['building_id','parcel_id'],axis = 1,inplace = True)
+        persons = persons.merge(jobs_df, how = 'inner',on = 'job_id')
+        persons.drop(['building_id','parcel_id'],axis = 1,inplace = True)
 
 
-        persons_with_job = persons_with_job.merge(MTC_acc, how = 'left',left_on = 'orig', right_on = 'taz1454')
-        persons_with_job[MTC_acc.columns] = persons_with_job[MTC_acc.columns].fillna(0)
+        persons = persons.merge(MTC_acc, how = 'left',left_on = 'orig', right_on = 'taz1454')
+        persons[MTC_acc.columns] = persons[MTC_acc.columns].fillna(0)
 
-        persons_with_job = persons_with_job.merge(skim_combined, how = 'left', on = ['orig','dest','TOD'])
+        persons = persons.merge(skim_combined, how = 'left', on = ['orig','dest','TOD'])
 
         
         # rename the remaning attributes
-        persons_with_job['OWN'] = (persons_with_job['tenure']==1).astype(int)
-        persons_with_job.rename(columns = {'cars':'HHVEH','income':'INCOM','persons':'HHSIZ'},inplace = True)
-        return persons_with_job
+        persons['OWN'] = (persons['tenure']==1).astype(int)
+        persons.rename(columns = {'cars':'HHVEH','income':'INCOM','persons':'HHSIZ'},inplace = True)
+        return persons
     
     
     m = mm.get_step('primary_mode_choice')
@@ -287,7 +284,7 @@ def primary_mode_choice_simulate(persons):
     m.tables = ['persons_CHTS_format']
     m.out_table = 'persons_CHTS_format'
     m.out_column = 'primary_commute_mode'
-    
+
     m.run()
 
 
