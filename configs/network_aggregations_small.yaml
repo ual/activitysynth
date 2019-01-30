@@ -73,6 +73,13 @@ variable_definitions:
     radius: 10000
     aggregation: ave
     decay: flat
+    
+  - name: med_rent_10000
+    dataframe: rentals
+    varname: rent
+    radius: 10000
+    aggregation: median
+    decay: flat    
 
   - name: pop_white_10000
     dataframe: households
