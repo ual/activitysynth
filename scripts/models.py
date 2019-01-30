@@ -87,6 +87,13 @@ def network_aggregations_small(netsmall):
     nodessmall = networks.from_yaml(
         netsmall, 'network_aggregations_small.yaml')
     nodessmall = nodessmall.fillna(0)
+    
+    # new variables
+    print('compute additional aggregation variables')
+    nodessmall['pop_jobs_ratio_10000'] = (nodessmall['pop_10000'] / (nodessmall['jobs_10000'])).fillna(0)
+    nodessmall['pop_jobs_ratio_25000'] = (nodessmall['pop_25000'] / (nodessmall['jobs_25000'])).fillna(0)
+    # end of addition
+    
     print(nodessmall.describe())
     orca.add_table('nodessmall', nodessmall)
 
@@ -100,6 +107,34 @@ def network_aggregations_walk(netwalk):
 
     nodeswalk = networks.from_yaml(netwalk, 'network_aggregations_walk.yaml')
     nodeswalk = nodeswalk.fillna(0)
+    
+    # new variables
+    print('compute additional aggregation variables')
+    nodeswalk['prop_children_500_walk'] = ((nodeswalk['children_500_walk'] > 0).astype(int) / nodeswalk['hh_500_walk']).fillna(0)
+    nodeswalk['prop_singles_500_walk'] = (nodeswalk['singles_500_walk'] / nodeswalk['hh_500_walk']).fillna(0)
+    nodeswalk['prop_elderly_500_walk'] = (nodeswalk['elderly_hh_500_walk'] / nodeswalk['hh_500_walk']).fillna(0)
+    nodeswalk['prop_black_500_walk'] = (nodeswalk['pop_black_500_walk'] / nodeswalk['pop_500_walk']).fillna(0)
+    nodeswalk['prop_white_500_walk'] = (nodeswalk['pop_white_500_walk'] / nodeswalk['pop_500_walk']).fillna(0)
+    nodeswalk['prop_asian_500_walk'] = (nodeswalk['pop_asian_500_walk'] / nodeswalk['pop_500_walk']).fillna(0)
+    nodeswalk['prop_hisp_500_walk'] = (nodeswalk['pop_hisp_500_walk'] / nodeswalk['pop_500_walk']).fillna(0)
+    nodeswalk['prop_rich_500_walk'] = (nodeswalk['rich_500_walk'] / nodeswalk['pop_500_walk']).fillna(0)
+    nodeswalk['prop_poor_500_walk'] = (nodeswalk['poor_500_walk'] / nodeswalk['pop_500_walk']).fillna(0)
+
+    nodeswalk['prop_children_1500_walk'] = ((nodeswalk['children_1500_walk'] > 0).astype(int)/nodeswalk['hh_1500_walk']).fillna(0)
+    nodeswalk['prop_singles_1500_walk'] = (nodeswalk['singles_1500_walk'] / nodeswalk['hh_1500_walk']).fillna(0)
+    nodeswalk['prop_elderly_1500_walk'] = (nodeswalk['elderly_hh_1500_walk'] / nodeswalk['hh_1500_walk']).fillna(0)
+    nodeswalk['prop_black_1500_walk'] = (nodeswalk['pop_black_1500_walk'] / nodeswalk['pop_1500_walk']).fillna(0)
+    nodeswalk['prop_white_1500_walk'] = (nodeswalk['pop_white_1500_walk'] / nodeswalk['pop_1500_walk']).fillna(0)
+    nodeswalk['prop_asian_1500_walk'] = (nodeswalk['pop_asian_1500_walk'] / nodeswalk['pop_1500_walk']).fillna(0)
+    nodeswalk['prop_hisp_1500_walk'] = (nodeswalk['pop_hisp_1500_walk'] / nodeswalk['pop_1500_walk']).fillna(0)
+    nodeswalk['prop_rich_1500_walk'] = (nodeswalk['rich_1500_walk'] / nodeswalk['pop_1500_walk']).fillna(0)
+    nodeswalk['prop_poor_1500_walk'] = (nodeswalk['poor_1500_walk'] / nodeswalk['pop_1500_walk']).fillna(0)
+
+    nodeswalk['pop_jobs_ratio_1500_walk'] = (nodeswalk['pop_1500_walk'] / (nodeswalk['jobs_500_walk'])).fillna(0)
+    nodeswalk['avg_hhs_500_walk'] = (nodeswalk['pop_500_walk'] / (nodeswalk['hh_500_walk'])).fillna(0)
+    nodeswalk['avg_hhs_1500_walk'] = (nodeswalk['pop_1500_walk'] / (nodeswalk['hh_1500_walk'])).fillna(0)
+    # end of addition
+    
     print(nodeswalk.describe())
     orca.add_table('nodeswalk', nodeswalk)
 
