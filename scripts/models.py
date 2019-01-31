@@ -92,6 +92,12 @@ def network_aggregations_small(netsmall):
     print('compute additional aggregation variables')
     nodessmall['pop_jobs_ratio_10000'] = (nodessmall['pop_10000'] / (nodessmall['jobs_10000'])).fillna(0)
     nodessmall['pop_jobs_ratio_25000'] = (nodessmall['pop_25000'] / (nodessmall['jobs_25000'])).fillna(0)
+    # fill inf and nan with median
+    nodessmall['pop_jobs_ratio_10000'] = nodessmall['pop_jobs_ratio_10000'].replace([np.inf, -np.inf], np.nan).fillna(
+        nodessmall['pop_jobs_ratio_10000'].median)
+    nodessmall['pop_jobs_ratio_25000'] = nodessmall['pop_jobs_ratio_25000'].replace([np.inf, -np.inf], np.nan).fillna(
+        nodessmall['pop_jobs_ratio_25000'].median)
+    
     # end of addition
     
     print(nodessmall.describe())
@@ -134,6 +140,20 @@ def network_aggregations_walk(netwalk):
     nodeswalk['avg_hhs_500_walk'] = (nodeswalk['pop_500_walk'] / (nodeswalk['hh_500_walk'])).fillna(0)
     nodeswalk['avg_hhs_1500_walk'] = (nodeswalk['pop_1500_walk'] / (nodeswalk['hh_1500_walk'])).fillna(0)
     # end of addition
+    
+    # fill inf and nan with median
+    
+    def replace_inf_nan_with_median(col_name):
+        return nodeswalk[col_name].replace([np.inf, -np.inf],np.nan).fillna(nodeswalk[col_name].median)
+    
+    for col_name in ['prop_children_500_walk','prop_singles_500_walk','prop_elderly_500_walk',
+                     'prop_black_500_walk','prop_white_500_walk','prop_asian_500_walk','prop_hisp_500_walk',
+                     'prop_rich_500_walk','prop_poor_500_walk','prop_children_1500_walk','prop_singles_1500_walk',
+                     'prop_elderly_1500_walk','prop_black_1500_walk','prop_white_1500_walk','prop_asian_1500_walk',
+                     'prop_hisp_1500_walk','prop_rich_1500_walk','prop_poor_1500_walk','pop_jobs_ratio_1500_walk',
+                     'avg_hhs_500_walk','avg_hhs_1500_walk']:
+        nodeswalk[col_name] = replace_inf_nan_with_median(col_name)
+    
     
     print(nodeswalk.describe())
     orca.add_table('nodeswalk', nodeswalk)
