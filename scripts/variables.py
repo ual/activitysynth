@@ -248,7 +248,41 @@ def zone_id_home(persons, households, units, buildings, parcels):
 #      Auto ownership dummy columns     #
 #########################################
 
+# out column
+@orca.column('households')
+def cars_alt(households):
+    return (pd.Series(0,index = households.index))
 
+# income bin dummies
+@orca.column('households')
+def income_2(households):
+    return ((households['income']>= 0) & (households['income']<= 20000)).astype(int)
+
+@orca.column('households')
+def income_4(households):
+    return ((households['income']> 20000) & (households['income']<= 40000)).astype(int)
+
+@orca.column('households')
+def income_6(households):
+    return ((households['income']> 40000) & (households['income']<= 60000)).astype(int)
+
+@orca.column('households')
+def income_8(households):
+    return ((households['income']> 60000) & (households['income']<= 80000)).astype(int)
+
+@orca.column('households')
+def income_10(households):
+    return ((households['income']> 80000) & (households['income']<= 100000)).astype(int)
+
+@orca.column('households')
+def income_12(households):
+    return ((households['income']> 100000) & (households['income']<= 120000)).astype(int)
+
+@orca.column('households')
+def income_12p(households):
+    return (households['income']> 120000).astype(int)
+
+# tenure type dummies
 @orca.column('households')
 def tenure_1(households):
     return (households['tenure'] == 1).astype(int)

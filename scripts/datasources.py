@@ -109,6 +109,24 @@ def establishments():
 
 ############################################################
 
+# Tables from Jayne Chang
+
+# Append AM peak UrbanAccess transit accessibility variables to parcels table
+
+parcels = orca.get_table('parcels').to_frame()
+am_acc = pd.read_csv('./data/access_indicators_ampeak.csv',dtype = {'block_id':str})
+am_acc.block_id = am_acc.block_id.str.zfill(15)
+parcels_with_acc = parcels.merge(am_acc, how='left', on='block_id').reindex(index = parcels.index) # reorder to align with parcels table
+
+for acc_col in set(parcels_with_acc.columns) - set(parcels):
+    # fill NA with median value
+    orca.add_column('parcels',acc_col,
+     parcels_with_acc[acc_col].fillna(parcels_with_acc[acc_col].median())
+               )
+
+############################################################
+
+
 # Broadcasts, a.k.a. merge relationships
 
 
