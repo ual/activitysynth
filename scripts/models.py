@@ -211,31 +211,7 @@ def auto_ownership_simulate(households):
     """
     
     
-    # income bin dummies
-    income_bins = pd.cut(
-        orca.get_table('households').to_frame().income,
-        bins=[0, 20000, 40000, 60000, 80000, 100000, 120000, np.inf],
-        labels=['2', '4', '6', '8', '10', '12', '12p'], include_lowest=True)
-
-    income_bin_dummies = pd.get_dummies(income_bins, prefix='income')
-
-    for i in income_bin_dummies.columns:
-        orca.add_column('households', i, income_bin_dummies[i])
-    
-    
-    # load UrbanAccess transit accessibility variables
-    parcels = orca.get_table('parcels').to_frame()
-    am_acc = pd.read_csv('./data/access_indicators_ampeak.csv',dtype = {'block_id':str})
-    am_acc.block_id = am_acc.block_id.str.zfill(15)
-    parcels_with_acc = parcels.merge(am_acc, how='left', on='block_id').reindex(index = parcels.index) # reorder to align with parcels table
-    
-    for acc_col in set(parcels_with_acc.columns) - set(parcels):
-        # fill NA with median value
-        orca.add_column('parcels',acc_col,
-         parcels_with_acc[acc_col].fillna(parcels_with_acc[acc_col].median())
-                   )
-    
-    @orca.table(cache=False)
+    @orca.table(cache=True)
     def hh_merged():
         df = orca.merge_tables(target = 'households',tables = ['households','units','buildings','parcels'
                                                           ,'nodessmall','nodeswalk'])
@@ -246,7 +222,8 @@ def auto_ownership_simulate(households):
     # remove filters, specify out table, out column
     
     m.filters = None
-    m.out_table = 'households'
+    m.tables = ['households','units','buildings','parcels' ,'nodessmall','nodeswalk']
+#    m.out_tables = 'households'
     m.out_column = 'cars_alt'
     
     m.run()
@@ -264,7 +241,7 @@ def primary_mode_choice_simulate(persons):
     - 5: bike
     - 6: walk
     """    
-    @orca.table()
+    @orca.table(cache=True)
     def persons_CHTS_format():
     # use persons with jobs for persons
         persons = orca.get_table('persons').to_frame()
