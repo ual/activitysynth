@@ -210,21 +210,14 @@ def auto_ownership_simulate(households):
     - 3: three or more vehicles
     """
     
-    
-    @orca.table(cache=True)
-    def hh_merged():
-        df = orca.merge_tables(target = 'households',tables = ['households','units','buildings','parcels'
-                                                          ,'nodessmall','nodeswalk'])
-        return df
-    
+       
     m = mm.get_step('auto_ownership')
     
-    # remove filters, specify out table, out column
+    # remove filters, specify out tables
     
     m.filters = None
     m.tables = ['households','units','buildings','parcels' ,'nodessmall','nodeswalk']
-#    m.out_tables = 'households'
-    m.out_column = 'cars_alt'
+    m.out_tables = ['households','units','buildings','parcels' ,'nodessmall','nodeswalk']
     
     m.run()
 
@@ -334,7 +327,7 @@ def TOD_choice_simulate():
     
     TOD_obs.dropna(inplace = True)
     
-    skims = pd.read_csv('./data/skims_110118.csv')
+    skim = pd.read_csv('/home/emma/ual_model_workspace/fall-2018-models/skims_110118.csv',index_col = 0)
     
     TOD_obs = pd.merge(TOD_obs, skims, how = 'left', 
                        left_on=['zone_id_home','zone_id_work'], 
