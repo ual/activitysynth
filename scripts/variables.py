@@ -248,10 +248,6 @@ def zone_id_home(persons, households, units, buildings, parcels):
 #      Auto ownership dummy columns     #
 #########################################
 
-# out column
-@orca.column('households')
-def cars_alt(households):
-    return (pd.Series(0,index = households.index))
 
 # income bin dummies
 @orca.column('households')
