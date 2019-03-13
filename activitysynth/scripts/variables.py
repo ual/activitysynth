@@ -2,6 +2,7 @@ import orca
 from urbansim.utils import misc
 
 import pandas as pd
+import numpy as np
 
 ############################
 # small drive network vars #
@@ -85,6 +86,109 @@ def node_id_walk(households, persons):
 def node_id_walk(buildings, jobs):
     return misc.reindex(buildings.node_id_walk, jobs.building_id)
 
+
+##########################
+# small network aggregation
+##########################
+
+def fill_median(Series): # replace inf and NaN with median
+    return Series.replace([np.inf, -np.inf],np.nan).fillna(Series.median())
+
+@orca.column('nodessmall')
+def pop_jobs_ratio_10000(nodessmall):
+    return fill_median(nodessmall['pop_10000'] / nodessmall['jobs_10000'])
+    
+@orca.column('nodessmall')
+def pop_jobs_ratio_25000(nodessmall):
+    return fill_median(nodessmall['pop_25000'] / nodessmall['jobs_25000'])                
+
+##########################
+# walk network aggregation
+##########################
+
+@orca.column('nodeswalk')
+def prop_children_500_walk(nodeswalk):
+    return fill_median((nodeswalk['children_500_walk'] > 0).astype(int) / nodeswalk['hh_500_walk'])
+
+@orca.column('nodeswalk')
+def prop_singles_500_walk (nodeswalk):
+    return fill_median(nodeswalk['singles_500_walk'] / nodeswalk['hh_500_walk'])
+
+@orca.column('nodeswalk')
+def prop_elderly_500_walk (nodeswalk):
+    return fill_median(nodeswalk['elderly_hh_500_walk'] / nodeswalk['hh_500_walk'])
+
+@orca.column('nodeswalk')
+def prop_black_500_walk (nodeswalk):
+    return fill_median(nodeswalk['pop_black_500_walk'] / nodeswalk['pop_500_walk'])
+
+@orca.column('nodeswalk')
+def prop_white_500_walk (nodeswalk):
+    return fill_median(nodeswalk['pop_white_500_walk'] / nodeswalk['pop_500_walk'])
+
+@orca.column('nodeswalk')
+def prop_asian_500_walk (nodeswalk):
+    return fill_median(nodeswalk['pop_asian_500_walk'] / nodeswalk['pop_500_walk'])
+
+@orca.column('nodeswalk')
+def prop_hisp_500_walk (nodeswalk):
+    return fill_median(nodeswalk['pop_hisp_500_walk'] / nodeswalk['pop_500_walk'])
+
+@orca.column('nodeswalk')
+def prop_rich_500_walk (nodeswalk):
+    return fill_median(nodeswalk['rich_500_walk'] / nodeswalk['pop_500_walk'])
+
+@orca.column('nodeswalk')
+def prop_poor_500_walk (nodeswalk):
+    return fill_median(nodeswalk['poor_500_walk'] / nodeswalk['pop_500_walk'])
+
+@orca.column('nodeswalk')
+def prop_children_1500_walk (nodeswalk):
+    return fill_median((nodeswalk['children_1500_walk'] > 0).astype(int)/nodeswalk['hh_1500_walk'])
+
+@orca.column('nodeswalk')
+def prop_singles_1500_walk (nodeswalk):
+    return fill_median(nodeswalk['singles_1500_walk'] / nodeswalk['hh_1500_walk'])
+
+@orca.column('nodeswalk')
+def prop_elderly_1500_walk (nodeswalk):
+    return fill_median(nodeswalk['elderly_hh_1500_walk'] / nodeswalk['hh_1500_walk'])
+
+@orca.column('nodeswalk')
+def prop_black_1500_walk (nodeswalk):
+    return fill_median(nodeswalk['pop_black_1500_walk'] / nodeswalk['pop_1500_walk'])
+
+@orca.column('nodeswalk')
+def prop_white_1500_walk (nodeswalk):
+    return fill_median(nodeswalk['pop_white_1500_walk'] / nodeswalk['pop_1500_walk'])
+
+@orca.column('nodeswalk')
+def prop_asian_1500_walk (nodeswalk):
+    return fill_median(nodeswalk['pop_asian_1500_walk'] / nodeswalk['pop_1500_walk'])
+
+@orca.column('nodeswalk')
+def prop_hisp_1500_walk (nodeswalk):
+    return fill_median(nodeswalk['pop_hisp_1500_walk'] / nodeswalk['pop_1500_walk'])
+
+@orca.column('nodeswalk')
+def prop_rich_1500_walk (nodeswalk):
+    return fill_median(nodeswalk['rich_1500_walk'] / nodeswalk['pop_1500_walk'])
+
+@orca.column('nodeswalk')
+def prop_poor_1500_walk (nodeswalk):
+    return fill_median(nodeswalk['poor_1500_walk'] / nodeswalk['pop_1500_walk'])
+
+@orca.column('nodeswalk')
+def pop_jobs_ratio_1500_walk (nodeswalk):
+    return fill_median(nodeswalk['pop_1500_walk'] / (nodeswalk['jobs_500_walk']))
+
+@orca.column('nodeswalk')
+def avg_hhs_500_walk (nodeswalk):
+    return fill_median(nodeswalk['pop_500_walk'] / (nodeswalk['hh_500_walk']))
+
+@orca.column('nodeswalk')
+def avg_hhs_1500_walk (nodeswalk):
+    return fill_median(nodeswalk['pop_1500_walk'] / (nodeswalk['hh_1500_walk']))
 
 ###########################
 #    beam network vars    #
@@ -249,6 +353,36 @@ def zone_id_home(persons, households, units, buildings, parcels):
 #########################################
 
 
+# income bin dummies
+@orca.column('households')
+def income_2(households):
+    return ((households['income']>= 0) & (households['income']<= 20000)).astype(int)
+
+@orca.column('households')
+def income_4(households):
+    return ((households['income']> 20000) & (households['income']<= 40000)).astype(int)
+
+@orca.column('households')
+def income_6(households):
+    return ((households['income']> 40000) & (households['income']<= 60000)).astype(int)
+
+@orca.column('households')
+def income_8(households):
+    return ((households['income']> 60000) & (households['income']<= 80000)).astype(int)
+
+@orca.column('households')
+def income_10(households):
+    return ((households['income']> 80000) & (households['income']<= 100000)).astype(int)
+
+@orca.column('households')
+def income_12(households):
+    return ((households['income']> 100000) & (households['income']<= 120000)).astype(int)
+
+@orca.column('households')
+def income_12p(households):
+    return (households['income']> 120000).astype(int)
+
+# tenure type dummies
 @orca.column('households')
 def tenure_1(households):
     return (households['tenure'] == 1).astype(int)
