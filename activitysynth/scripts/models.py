@@ -3,17 +3,12 @@ import pandana as pdna
 import pandas as pd
 import scipy.stats as st
 import numpy as np
+from datetime import datetime
 
 from urbansim.utils import networks
 from urbansim_templates import modelmanager as mm
 from urbansim_templates.models import LargeMultinomialLogitStep
 
-
-# Set data directory
-d = '/home/data/fall_2018/'
-
-if 'data_directory' in orca.list_injectables():
-    d = orca.get_injectable('data_directory')
 
 # load existing model steps from the model manager
 mm.initialize()
@@ -31,13 +26,12 @@ def initialize_network_small():
     """
 
     @orca.injectable('netsmall', cache=True)
-    def build_networksmall():
-        nodessmall = pd.read_csv(d + 'bay_area_tertiary_strongly_nodes.csv') \
-            .set_index('osmid')
-        edgessmall = pd.read_csv(d + 'bay_area_tertiary_strongly_edges.csv')
-        netsmall = pdna.Network(nodessmall.x, nodessmall.y, edgessmall.u,
-                                edgessmall.v, edgessmall[['length']],
-                                twoway=False)
+    def build_networksmall(store):
+        nodessmall, edgessmall = store['nodessmall'], store['edgessmall']
+        netsmall = pdna.Network(
+            nodessmall.x, nodessmall.y, edgessmall.u,
+            edgessmall.v, edgessmall[['length']],
+            twoway=False)
         netsmall.precompute(25000)
         return netsmall
 
@@ -50,10 +44,8 @@ def initialize_network_walk():
     """
 
     @orca.injectable('netwalk', cache=True)
-    def build_networkwalk():
-        nodeswalk = pd.read_csv(d + 'bayarea_walk_nodes.csv') \
-            .set_index('osmid')
-        edgeswalk = pd.read_csv(d + 'bayarea_walk_edges.csv')
+    def build_networkwalk(store):
+        nodeswalk, edgeswalk = store['nodeswalk'], store['edgeswalk']
         netwalk = pdna.Network(nodeswalk.x, nodeswalk.y, edgeswalk.u,
                                edgeswalk.v, edgeswalk[['length']], twoway=True)
         netwalk.precompute(2500)
@@ -68,10 +60,8 @@ def initialize_network_beam():
     """
 
     @orca.injectable('netbeam', cache=True)
-    def build_networkbeam():
-        nodesbeam = pd.read_csv(d + 'physsim-network-nodes.csv') \
-            .set_index('id')
-        edgesbeam = pd.read_csv(d + 'physsim-network-links.csv')
+    def build_networkbeam(store):
+        nodesbeam, edgesbeam = store['nodesbeam'], store['edgesbeam']
         netbeam = pdna.Network(
             nodesbeam['x'], nodesbeam['y'], edgesbeam['from'],
             edgesbeam['to'], edgesbeam[['travelTime']], twoway=False)
@@ -501,6 +491,8 @@ def TOD_distribution_simulate():
 
 @orca.step()
 def generate_activity_plans():
+
+    time = str(datetime.now().strftime('%Y-%m-%d_%H:%M:%S'))
 
     persons = orca.get_table('persons').to_frame().reset_index().rename(
         columns={'index': 'person_id'})
