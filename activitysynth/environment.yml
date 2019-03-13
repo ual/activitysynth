@@ -1,0 +1,23 @@
+name: activitysynth
+
+channels:
+  - udst  # for orca and pandana
+  - conda-forge  # for choicemodels, statsmodels, and many dependencies
+  - timothyb0912  # for pylogit
+
+dependencies:
+  - python=3.6
+  - geopandas=0.3
+  - jupyter=1.0
+  - matplotlib=2.2
+  - numpy=1.15
+  - orca=1.5
+  - pandana=0.4.1
+  - pandas=0.23
+  - pylogit=0.2
+  - scipy=1.1
+  - statsmodels=0.9
+  - pip:
+    - https://github.com/udst/choicemodels/archive/master.zip#egg=choicemodels
+    - https://github.com/udst/urbansim_templates/archive/master.zip#egg=urbansim_templates
+
