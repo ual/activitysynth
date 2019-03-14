@@ -1,24 +1,75 @@
 import orca
 import pandas as pd
 import warnings
-
 import urbansim_templates
+import argparse
+
 from activitysynth.scripts import models, datasources, variables
+
 
 warnings.simplefilter('ignore')
 accessibilities_mode = 'compute'
 year = 2010
+data_mode = 'csv'
 output_tables = [
     'parcels', 'buildings', 'jobs', 'persons', 'households',
     'establishments', 'rentals', 'units']
 output_bucket = 'urbansim-outputs'
 beam_bucket = 'urbansim-beam'
-asynth_data_dir = './data/'
+local_data_dir = '/home/data/spring_2019/'
 fname_walk = 'walk_net_vars.csv'
 fname_drive = 'drive_net_vars.csv'
 
 
 if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser(description='Run ActivitySynth models.')
+    parser.add_argument(
+        "--data-mode", "-d", dest='data_mode', action="store",
+        help="options: h5 (local), csv (local), s3 (parquet)")
+    parser.add_argument(
+        "--year", "-y", help="what simulation year is it?", action="store")
+    parser.add_argument(
+        "--access-vars-mode", "-a", help="option: compute, stored",
+        action="store", dest='accessibilities_mode')
+
+    options = parser.parse_args()
+
+    if options.year:
+        year = options.year
+
+    if options.data_mode:
+        data_mode = options.data_mode
+
+    if options.accessibilities_mode:
+        accessibilities_mode = options.accessibilities_mode
+
+    orca.add_injectable('data_mode', data_mode)
+
+    if data_mode == 'h5':
+        @orca.injectable('store', cache=True)
+        def hdfstore():
+            return pd.HDFStore(
+                (local_data_dir + "model_data.h5"), mode='r')
+        orca.add_injectable('s3_input_data_url', None)
+        orca.add_injectable('local_data_dir', None)
+
+    elif data_mode == 's3':
+        orca.add_injectable('store', None)
+        orca.add_injectable(
+            's3_input_data_url',
+            's3://urbansim-baseyear-inputs/{0}.parquet.gz')
+        orca.add_injectable('local_data_dir', None)
+
+    elif data_mode == 'csv':
+        orca.add_injectable('store', None)
+        orca.add_injectable('s3_input_data_url', None)
+        orca.add_injectable('local_data_dir', local_data_dir)
+
+    else:
+        raise ValueError(
+            'Must specifiy a valid data mode. Valid options '
+            'include "csv", "h5", and "s3".')
 
     # initialize network
     model_steps = [
@@ -33,15 +84,15 @@ if __name__ == "__main__":
             'network_aggregations_small', 'network_aggregations_walk']
         orca.run(model_steps)
         orca.get_table('nodeswalk').to_frame().to_csv(
-            asynth_data_dir + fname_walk)
+            local_data_dir + fname_walk)
         orca.get_table('nodessmall').to_frame().to_csv(
-            asynth_data_dir + fname_drive)
+            local_data_dir + fname_drive)
 
-    elif accessibilities_mode == 'precomputed':
+    elif accessibilities_mode == 'stored':
         walk_net_vars = pd.read_csv(
-            asynth_data_dir + fname_walk, index_col='osmid')
+            local_data_dir + fname_walk, index_col='osmid')
         drive_net_vars = pd.read_csv(
-            asynth_data_dir + fname_drive, index_col='osmid')
+            local_data_dir + fname_drive, index_col='osmid')
         orca.add_table('nodeswalk', walk_net_vars)
         orca.add_table('nodessmall', drive_net_vars)
 

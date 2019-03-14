@@ -26,9 +26,18 @@ def initialize_network_small():
     """
 
     @orca.injectable('netsmall', cache=True)
-    def build_networksmall(s3_input_data_url):
-        nodes = pd.read_parquet(s3_input_data_url.format('nodessmall'))
-        edges = pd.read_parquet(s3_input_data_url.format('edgessmall'))
+    def build_networksmall(data_mode, store, s3_input_data_url, local_data_dir):
+        if data_mode == 's3':
+            nodes = pd.read_parquet(s3_input_data_url.format('nodessmall'))
+            edges = pd.read_parquet(s3_input_data_url.format('edgessmall'))
+        elif data_mode == 'h5':
+            nodes = store['nodessmall']
+            edges = store['edgessmall']
+        elif data_mode == 'csv':
+            nodes = pd.read_csv(
+                local_data_dir + 'bay_area_tertiary_strongly_nodes.csv').set_index('osmid')
+            edges = pd.read_csv(
+                local_data_dir + 'bay_area_tertiary_strongly_edges.csv').set_index('uniqueid')
         netsmall = pdna.Network(
             nodes.x, nodes.y, edges.u,
             edges.v, edges[['length']],
@@ -45,11 +54,22 @@ def initialize_network_walk():
     """
 
     @orca.injectable('netwalk', cache=True)
-    def build_networkwalk(s3_input_data_url):
-        nodes = pd.read_parquet(s3_input_data_url.format('nodeswalk'))
-        edges = pd.read_parquet(s3_input_data_url.format('edgeswalk'))
-        netwalk = pdna.Network(nodes.x, nodes.y, edges.u,
-                               edges.v, edges[['length']], twoway=True)
+    def build_networkwalk(data_mode, store, s3_input_data_url, local_data_dir):
+        if data_mode == 's3':
+            nodes = pd.read_parquet(s3_input_data_url.format('nodeswalk'))
+            edges = pd.read_parquet(s3_input_data_url.format('edgeswalk'))
+        elif data_mode == 'h5':
+            nodes = store['nodeswalk']
+            edges = store['edgeswalk']
+        elif data_mode == 'csv':
+            nodes = pd.read_csv(
+                local_data_dir + 'bayarea_walk_nodes.csv').set_index('osmid')
+            edges = pd.read_csv(
+                local_data_dir + 'bayarea_walk_edges.csv').set_index(
+                'uniqueid')
+        netwalk = pdna.Network(
+            nodes.x, nodes.y, edges.u,
+            edges.v, edges[['length']], twoway=True)
         netwalk.precompute(2500)
         return netwalk
 
@@ -173,7 +193,7 @@ def primary_mode_choice_simulate(persons):
     - 6: walk
     """    
     @orca.table(cache=True)
-    def persons_CHTS_format():
+    def persons_CHTS_format(skims):
     # use persons with jobs for persons
         persons = orca.get_table('persons').to_frame()
         persons.index.name = 'person_id'
