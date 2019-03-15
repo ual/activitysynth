@@ -562,7 +562,7 @@ def generate_activity_plans():
 
     returnActivity = plans[plans['planElementIndex'] == 1]
     returnActivity.loc[:, 'planElementIndex'] = 5
-    returnActivity.loc[:, 'endTime'] = ''
+    returnActivity.loc[:, 'endTime'] = None
 
     plans = plans.append(
         returnActivity, ignore_index=True).sort_values(
@@ -571,7 +571,7 @@ def generate_activity_plans():
     legs = plans[plans['planElementIndex'].isin([1, 3])]
     legs.loc[:, 'planElementIndex'] = legs.loc[:, 'planElementIndex'] + 1
     legs.loc[:, 'activityType'] = ''
-    legs.loc[:, 'endTime'] = ''
+    legs.loc[:, 'endTime'] = None
     legs.loc[:, 'x'] = None
     legs.loc[:, 'y'] = None
     legs.loc[:, 'planElement'] = 'leg'
