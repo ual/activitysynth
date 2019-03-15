@@ -215,7 +215,7 @@ def primary_mode_choice_simulate(persons):
         persons.TOD = persons.TOD.map({2:'EA',3:'EA',12:'AM',14:'AM',22:'MD',23:'MD',24:'MD'})
 
         # read skim
-        skim = pd.read_csv('/home/emma/ual_model_workspace/fall-2018-models/skims_110118.csv',index_col = 0)
+        skim = orca.get_table('skims').to_frame()
         
         skim.columns = skim.columns.str.replace('_distance','_Distance') # capitalization issues
         skim.columns = skim.columns.str.replace('_cost','_Cost')
