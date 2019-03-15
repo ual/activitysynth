@@ -105,14 +105,14 @@ if __name__ == "__main__":
     orca.run(model_steps)
 
     # save tables to parquet on s3
-    # for table_name in output_tables:
-    #     df = orca.get_table(table_name).to_frame()
-    #     s3_url = 's3://{0}/{1}/{2}.parquet.gz'.format(
-    #         output_bucket, year, table_name)
-    #     df.to_parquet(s3_url, compression='gzip', engine='pyarrow')
+    for table_name in output_tables:
+        df = orca.get_table(table_name).to_frame()
+        s3_url = 's3://{0}/{1}/{2}.parquet.gz'.format(
+            output_bucket, year, table_name)
+        df.to_parquet(s3_url, compression='gzip', engine='pyarrow')
 
-    # # save plans to parquet s3
-    # plans = orca.get_table('plans').to_frame()
-    # s3_url = 's3://{0}/{1}/{2}.parquet.gz'.format(
-    #     beam_bucket, year, 'activity_plans')
-    # plans.to_parquet(s3_url, compression='gzip')
+    # save plans to parquet s3
+    plans = orca.get_table('plans').to_frame()
+    s3_url = 's3://{0}/{1}/{2}.parquet.gz'.format(
+        beam_bucket, year, 'activity_plans')
+    plans.to_parquet(s3_url, compression='gzip')
