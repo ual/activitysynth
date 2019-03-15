@@ -16,7 +16,7 @@ output_tables = [
     'establishments', 'rentals', 'units']
 output_bucket = 'urbansim-outputs'
 beam_bucket = 'urbansim-beam'
-local_data_dir = '/home/data/spring_2019/'
+local_data_dir = './data/'
 fname_walk = 'walk_net_vars.csv'
 fname_drive = 'drive_net_vars.csv'
 
