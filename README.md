@@ -25,8 +25,11 @@ The primary beneficiary of this suite of models is the travel modeling community
 
 ## Installation
 `git clone https://github.com/ual/activitysynth`
+
 `cd activitysynth`
+
 `python setup.py install`
+
 
 ## Execution
 The `run.py` script in the main activitysynth directory will run activitysynth from start to finish. It accepts the following runtime arguments:
