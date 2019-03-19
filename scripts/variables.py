@@ -468,3 +468,12 @@ def info(jobs):
 @orca.column('jobs')
 def scitech(jobs):
     return jobs['sector_id'].isin([54]).astype(int)
+
+@orca.column('students')
+def is_college_student(students):
+    is_college_map = {3: 0,  # Kindergarten to grade 8
+                      4: 0,  # Grades 9 to 12 
+                      6: 1,  # 2-year college (community college) 
+                      7: 1,  # 4-year college or university 
+                      8: 1}  # Graduate school / Professional
+    return students.SCHOL.map(is_college_map)
