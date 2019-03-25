@@ -281,45 +281,21 @@ def TOD_choice_simulate(skims):
     home-work and work-home trips.
     
     """
-    TOD_obs = orca.merge_tables('persons', ['persons', 'households', 'jobs'])
-    
-    TOD_obs.dropna(inplace = True)
-    TOD_obs.reset_index(inplace=True)
+    interaction_terms_tt = pd.read_csv(
+        './data/WLCM_interaction_terms_tt.csv', index_col=[
+            'zone_id_home', 'zone_id_work'])
+    interaction_terms_dist = pd.read_csv(
+        './data/WLCM_interaction_terms_dist.csv', index_col=[
+            'zone_id_home', 'zone_id_work'])
+    interaction_terms_cost = pd.read_csv(
+        './data/WLCM_interaction_terms_cost.csv', index_col=[
+            'zone_id_home', 'zone_id_work'])
 
-    skims = orca.get_table('skims').to_frame()
-    
-    TOD_obs = pd.merge(TOD_obs, skims, how = 'left', 
-                       left_on=['zone_id_home', 'zone_id_work'], 
-                       right_on=['orig', 'dest'])
-
-    TOD_obs = pd.merge(TOD_obs, skims, how = 'left',
-                       left_on=['zone_id_work','zone_id_home'], 
-                       right_on=['orig', 'dest'], suffixes=('_HW', '_WH'))
-    
-    TOD_list = ['EA','AM','MD','PM','EV']
-
-    for tod1 in TOD_list:
-        for tod2 in TOD_list:
-            col_name = f'da_Time_{tod1}_{tod2}'
-            TOD_obs[col_name] = TOD_obs[f'da_Time_{tod1}_HW'] + TOD_obs[f'da_Time_{tod2}_WH']
-
-    # TOD_obs['TOD'] = None
-    
     m = mm.get_step('TOD_choice')
     
-    @orca.table(cache=True)
-    def tripsA():
-        return TOD_obs
+    #TOD_obs = orca.merge_tables('persons', ['persons', 'households', 'jobs'])
     
-    m.run()
-
-    results = orca.get_table('tripsA').to_frame().set_index('person_id')
-    persons = orca.get_table('persons').to_frame()
-    persons = pd.merge(
-        persons, results[['TOD']], how='left',
-        left_index=True, right_index=True)
-    orca.add_table('persons', persons)
-
+    m.run(interaction_terms=[interaction_terms_tt, interaction_terms_dist, interaction_terms_cost])
     
 @orca.step()
 def TOD_distribution_simulate():
