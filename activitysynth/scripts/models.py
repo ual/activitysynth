@@ -3,17 +3,12 @@ import pandana as pdna
 import pandas as pd
 import scipy.stats as st
 import numpy as np
+from datetime import datetime
 
 from urbansim.utils import networks
 from urbansim_templates import modelmanager as mm
 from urbansim_templates.models import LargeMultinomialLogitStep
 
-
-# Set data directory
-d = '/home/data/fall_2018/'
-
-if 'data_directory' in orca.list_injectables():
-    d = orca.get_injectable('data_directory')
 
 # load existing model steps from the model manager
 mm.initialize()
@@ -31,13 +26,22 @@ def initialize_network_small():
     """
 
     @orca.injectable('netsmall', cache=True)
-    def build_networksmall():
-        nodessmall = pd.read_csv(d + 'bay_area_tertiary_strongly_nodes.csv') \
-            .set_index('osmid')
-        edgessmall = pd.read_csv(d + 'bay_area_tertiary_strongly_edges.csv')
-        netsmall = pdna.Network(nodessmall.x, nodessmall.y, edgessmall.u,
-                                edgessmall.v, edgessmall[['length']],
-                                twoway=False)
+    def build_networksmall(data_mode, store, s3_input_data_url, local_data_dir):
+        if data_mode == 's3':
+            nodes = pd.read_parquet(s3_input_data_url.format('nodessmall'))
+            edges = pd.read_parquet(s3_input_data_url.format('edgessmall'))
+        elif data_mode == 'h5':
+            nodes = store['nodessmall']
+            edges = store['edgessmall']
+        elif data_mode == 'csv':
+            nodes = pd.read_csv(
+                local_data_dir + 'bay_area_tertiary_strongly_nodes.csv').set_index('osmid')
+            edges = pd.read_csv(
+                local_data_dir + 'bay_area_tertiary_strongly_edges.csv').set_index('uniqueid')
+        netsmall = pdna.Network(
+            nodes.x, nodes.y, edges.u,
+            edges.v, edges[['length']],
+            twoway=False)
         netsmall.precompute(25000)
         return netsmall
 
@@ -50,12 +54,22 @@ def initialize_network_walk():
     """
 
     @orca.injectable('netwalk', cache=True)
-    def build_networkwalk():
-        nodeswalk = pd.read_csv(d + 'bayarea_walk_nodes.csv') \
-            .set_index('osmid')
-        edgeswalk = pd.read_csv(d + 'bayarea_walk_edges.csv')
-        netwalk = pdna.Network(nodeswalk.x, nodeswalk.y, edgeswalk.u,
-                               edgeswalk.v, edgeswalk[['length']], twoway=True)
+    def build_networkwalk(data_mode, store, s3_input_data_url, local_data_dir):
+        if data_mode == 's3':
+            nodes = pd.read_parquet(s3_input_data_url.format('nodeswalk'))
+            edges = pd.read_parquet(s3_input_data_url.format('edgeswalk'))
+        elif data_mode == 'h5':
+            nodes = store['nodeswalk']
+            edges = store['edgeswalk']
+        elif data_mode == 'csv':
+            nodes = pd.read_csv(
+                local_data_dir + 'bayarea_walk_nodes.csv').set_index('osmid')
+            edges = pd.read_csv(
+                local_data_dir + 'bayarea_walk_edges.csv').set_index(
+                'uniqueid')
+        netwalk = pdna.Network(
+            nodes.x, nodes.y, edges.u,
+            edges.v, edges[['length']], twoway=True)
         netwalk.precompute(2500)
         return netwalk
 
@@ -68,13 +82,12 @@ def initialize_network_beam():
     """
 
     @orca.injectable('netbeam', cache=True)
-    def build_networkbeam():
-        nodesbeam = pd.read_csv(d + 'physsim-network-nodes.csv') \
-            .set_index('id')
-        edgesbeam = pd.read_csv(d + 'physsim-network-links.csv')
+    def build_networkbeam(s3_input_data_url):
+        nodes = pd.read_parquet(s3_input_data_url.format('nodesbeam'))
+        edges = pd.read_parquet(s3_input_data_url.format('edgesbeam'))
         netbeam = pdna.Network(
-            nodesbeam['x'], nodesbeam['y'], edgesbeam['from'],
-            edgesbeam['to'], edgesbeam[['travelTime']], twoway=False)
+            nodes['x'], nodes['y'], edges['from'],
+            edges['to'], edges[['travelTime']], twoway=False)
         netbeam.precompute(7200)
         return netbeam
 
@@ -87,7 +100,7 @@ def network_aggregations_small(netsmall):
     nodessmall = networks.from_yaml(
         netsmall, 'network_aggregations_small.yaml')
     nodessmall = nodessmall.fillna(0)
-    
+
     print(nodessmall.describe())
     orca.add_table('nodessmall', nodessmall)
 
@@ -98,7 +111,6 @@ def network_aggregations_walk(netwalk):
     This will be turned into a network aggregation template.
 
     """
-
     nodeswalk = networks.from_yaml(netwalk, 'network_aggregations_walk.yaml')
     nodeswalk = nodeswalk.fillna(0)
     print(nodeswalk.describe())
@@ -181,7 +193,7 @@ def primary_mode_choice_simulate(persons):
     - 6: walk
     """    
     @orca.table(cache=True)
-    def persons_CHTS_format():
+    def persons_CHTS_format(skims):
     # use persons with jobs for persons
         persons = orca.get_table('persons').to_frame()
         persons.index.name = 'person_id'
@@ -203,7 +215,7 @@ def primary_mode_choice_simulate(persons):
         persons.TOD = persons.TOD.map({2:'EA',3:'EA',12:'AM',14:'AM',22:'MD',23:'MD',24:'MD'})
 
         # read skim
-        skim = pd.read_csv('/home/emma/ual_model_workspace/fall-2018-models/skims_110118.csv',index_col = 0)
+        skim = orca.get_table('skims').to_frame()
         
         skim.columns = skim.columns.str.replace('_distance','_Distance') # capitalization issues
         skim.columns = skim.columns.str.replace('_cost','_Cost')
@@ -263,7 +275,7 @@ def primary_mode_choice_simulate(persons):
 
 
 @orca.step()
-def TOD_choice_simulate():
+def TOD_choice_simulate(skims):
     """
     Generate time of day period choices for the synthetic population
     home-work and work-home trips.
@@ -272,16 +284,17 @@ def TOD_choice_simulate():
     TOD_obs = orca.merge_tables('persons', ['persons', 'households', 'jobs'])
     
     TOD_obs.dropna(inplace = True)
-    
-    skim = pd.read_csv('/home/emma/ual_model_workspace/fall-2018-models/skims_110118.csv',index_col = 0)
+    TOD_obs.reset_index(inplace=True)
+
+    skims = orca.get_table('skims').to_frame()
     
     TOD_obs = pd.merge(TOD_obs, skims, how = 'left', 
-                       left_on=['zone_id_home','zone_id_work'], 
-                       right_on=['orig','dest'])
+                       left_on=['zone_id_home', 'zone_id_work'], 
+                       right_on=['orig', 'dest'])
 
     TOD_obs = pd.merge(TOD_obs, skims, how = 'left',
                        left_on=['zone_id_work','zone_id_home'], 
-                       right_on=['orig','dest'], suffixes=('_HW', '_WH'))
+                       right_on=['orig', 'dest'], suffixes=('_HW', '_WH'))
     
     TOD_list = ['EA','AM','MD','PM','EV']
 
@@ -300,7 +313,7 @@ def TOD_choice_simulate():
     
     m.run()
 
-    results = orca.get_table('tripsA').to_frame()
+    results = orca.get_table('tripsA').to_frame().set_index('person_id')
     persons = orca.get_table('persons').to_frame()
     persons = pd.merge(
         persons, results[['TOD']], how='left',
@@ -502,6 +515,8 @@ def TOD_distribution_simulate():
 @orca.step()
 def generate_activity_plans():
 
+    time = str(datetime.now().strftime('%Y-%m-%d_%H:%M:%S'))
+
     persons = orca.get_table('persons').to_frame().reset_index().rename(
         columns={'index': 'person_id'})
 
@@ -547,7 +562,7 @@ def generate_activity_plans():
 
     returnActivity = plans[plans['planElementIndex'] == 1]
     returnActivity.loc[:, 'planElementIndex'] = 5
-    returnActivity.loc[:, 'endTime'] = ''
+    returnActivity.loc[:, 'endTime'] = None
 
     plans = plans.append(
         returnActivity, ignore_index=True).sort_values(
@@ -556,9 +571,9 @@ def generate_activity_plans():
     legs = plans[plans['planElementIndex'].isin([1, 3])]
     legs.loc[:, 'planElementIndex'] = legs.loc[:, 'planElementIndex'] + 1
     legs.loc[:, 'activityType'] = ''
-    legs.loc[:, 'endTime'] = ''
-    legs.loc[:, 'x'] = ''
-    legs.loc[:, 'y'] = ''
+    legs.loc[:, 'endTime'] = None
+    legs.loc[:, 'x'] = None
+    legs.loc[:, 'y'] = None
     legs.loc[:, 'planElement'] = 'leg'
 
     plans = plans.append(legs, ignore_index=True).sort_values(
@@ -568,5 +583,6 @@ def generate_activity_plans():
     plans = plans[[
         'personId', 'planElement', 'planElementIndex', 'activityType',
         'x', 'y', 'endTime']]
+    plans['x']
     # plans.loc[plans['planElement'] == 'activity', 'mode'] = ''
-    plans.to_csv('./data/urbansim_beam_plans.csv', index=False)
+    orca.add_table('plans', plans, cache=True)

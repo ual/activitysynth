@@ -358,55 +358,146 @@ def zone_id_home(persons, households, units, buildings, parcels):
 def income_2(households):
     return ((households['income']>= 0) & (households['income']<= 20000)).astype(int)
 
+
 @orca.column('households')
 def income_4(households):
     return ((households['income']> 20000) & (households['income']<= 40000)).astype(int)
+
 
 @orca.column('households')
 def income_6(households):
     return ((households['income']> 40000) & (households['income']<= 60000)).astype(int)
 
+
 @orca.column('households')
 def income_8(households):
     return ((households['income']> 60000) & (households['income']<= 80000)).astype(int)
+
 
 @orca.column('households')
 def income_10(households):
     return ((households['income']> 80000) & (households['income']<= 100000)).astype(int)
 
+
 @orca.column('households')
 def income_12(households):
     return ((households['income']> 100000) & (households['income']<= 120000)).astype(int)
 
+
 @orca.column('households')
 def income_12p(households):
     return (households['income']> 120000).astype(int)
+
 
 # tenure type dummies
 @orca.column('households')
 def tenure_1(households):
     return (households['tenure'] == 1).astype(int)
 
+
 @orca.column('households')
 def tenure_2(households):
     return (households['tenure'] == 2).astype(int)
+
 
 @orca.column('households')
 def tenure_3(households):
     return (households['tenure'] == 3).astype(int)
 
+
 @orca.column('households')
 def tenure_4(households):
     return (households['tenure'] == 4).astype(int)
+
 
 @orca.column('households')
 def single_family_int(households):
     return households['single_family'].astype(int)
 
+
 @orca.column('households')
 def building_type_2(households):
     return (households['building_type'] == 2).astype(int)
 
+
+# AM Peak Accessibility Vars
+
+@orca.column('parcels')
+def average_income_20(parcels, access_indicators_ampeak):
+    return misc.reindex(
+        access_indicators_ampeak.average_income_20, parcels.block_id)
+
+
+@orca.column('parcels')
+def above_jobs_20(parcels, access_indicators_ampeak):
+    return misc.reindex(
+        access_indicators_ampeak.above_jobs_20, parcels.block_id)
+
+
+@orca.column('parcels')
+def above_jobs_40(parcels, access_indicators_ampeak):
+    return misc.reindex(
+        access_indicators_ampeak.above_jobs_40, parcels.block_id)
+
+
+@orca.column('parcels')
+def above_jobs_60(parcels, access_indicators_ampeak):
+    return misc.reindex(
+        access_indicators_ampeak.above_jobs_60, parcels.block_id)
+
+
+@orca.column('parcels')
+def below_jobs_20(parcels, access_indicators_ampeak):
+    return misc.reindex(
+        access_indicators_ampeak.below_jobs_20, parcels.block_id)
+
+
+@orca.column('parcels')
+def below_jobs_40(parcels, access_indicators_ampeak):
+    return misc.reindex(
+        access_indicators_ampeak.below_jobs_40, parcels.block_id)
+
+
+@orca.column('parcels')
+def below_jobs_60(parcels, access_indicators_ampeak):
+    return misc.reindex(
+        access_indicators_ampeak.below_jobs_60, parcels.block_id)
+
+
+@orca.column('parcels')
+def employment_20(parcels, access_indicators_ampeak):
+    return misc.reindex(
+        access_indicators_ampeak.employment_20, parcels.block_id)
+
+
+@orca.column('parcels')
+def employment_40(parcels, access_indicators_ampeak):
+    return misc.reindex(
+        access_indicators_ampeak.employment_40, parcels.block_id)
+
+
+@orca.column('parcels')
+def employment_60(parcels, access_indicators_ampeak):
+    return misc.reindex(
+        access_indicators_ampeak.employment_60, parcels.block_id)
+
+
+@orca.column('parcels')
+def population_20(parcels, access_indicators_ampeak):
+    return misc.reindex(
+        access_indicators_ampeak.population_20, parcels.block_id)
+
+
+@orca.column('parcels')
+def population_40(parcels, access_indicators_ampeak):
+    return misc.reindex(
+        access_indicators_ampeak.population_40, parcels.block_id)
+
+
+@orca.column('parcels')
+def population_60(parcels, access_indicators_ampeak):
+    return misc.reindex(
+        access_indicators_ampeak.population_60, parcels.block_id)
 
 ###########################
 #  TOD choice dummy vars  #
