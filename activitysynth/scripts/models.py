@@ -333,6 +333,22 @@ def TOD_choice_simulate(mtc_skims):
     # orca.add_table('persons', persons)
 
 
+    interaction_terms_tt = pd.read_csv(
+        './data/WLCM_interaction_terms_tt.csv', index_col=[
+            'zone_id_home', 'zone_id_work'])
+    interaction_terms_dist = pd.read_csv(
+        './data/WLCM_interaction_terms_dist.csv', index_col=[
+            'zone_id_home', 'zone_id_work'])
+    interaction_terms_cost = pd.read_csv(
+        './data/WLCM_interaction_terms_cost.csv', index_col=[
+            'zone_id_home', 'zone_id_work'])
+
+    m = mm.get_step('TOD_choice')
+
+    #TOD_obs = orca.merge_tables('persons', ['persons', 'households', 'jobs'])
+
+    m.run(interaction_terms=[interaction_terms_tt, interaction_terms_dist, interaction_terms_cost])
+
 @orca.step()
 def TOD_distribution_simulate():
     """
