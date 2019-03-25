@@ -179,3 +179,7 @@ orca.broadcast(
     'nodesbeam', 'parcels', cast_index=True, onto_on='node_id_beam')
 orca.broadcast(
     'nodesbeam', 'rentals', cast_index=True, onto_on='node_id_beam')
+orca.broadcast(
+    'nodesbeam', 'rentals', cast_index=True, onto_on='node_id_beam')
+orca.broadcast(
+    'jobs', 'persons', cast_index=True, onto_on='job_id')
