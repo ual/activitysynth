@@ -503,10 +503,37 @@ def population_60(parcels, access_indicators_ampeak):
 #  TOD choice dummy vars  #
 ###########################
 @orca.column('households')
+def cars_alt(households):
+    return (households['building_type'] == 2).astype(int)
+
+
+@orca.column('households')
+def hh_inc_less75k(households):
+    return((households['income'] < 75000)).astype(int)
+
+@orca.column('households')
+def hh_inc_75kless100k(households):
+    return((
+        households['income'] >= 75000) & (
+        households['income'] < 100000)).astype(int)
+
+@orca.column('households')
 def hh_inc_150kplus(households):
     return((
         households['income'] > 150000) | (
         households['income'] == 150000)).astype(int)
+
+@orca.column('households')
+def hh_inc_150kless200k(households):
+    return((
+        households['income'] >= 150000) & (
+        households['income'] < 250000)).astype(int)
+
+@orca.column('households')
+def hh_inc_250kplus(households):
+    return((
+        households['income'] > 250000) | (
+        households['income'] == 250000)).astype(int)
 
 @orca.column('persons')
 def lessGED(persons):
@@ -527,10 +554,18 @@ def Assoc(persons):
 @orca.column('persons')
 def Bach(persons):
     return(persons['edu'].isin([21])).astype(int)
+
+@orca.column('persons')
+def lessGED_GED(persons):
+    return((persons['edu'] < 16) | (persons['edu'] == 16) | (persons['edu'] == 17)).astype(int)
            
 @orca.column('persons')
 def female(persons):
     return (persons['sex'] - 1)
+
+@orca.column('persons')
+def asian(persons):
+    return(persons['race_id'].isin([4.0])).astype(int)
            
 @orca.column('persons')
 def white(persons):
@@ -543,10 +578,26 @@ def minority(persons):
 @orca.column('persons')
 def age_16less25(persons):
     return((persons.age.between(16,25,inclusive = False)) | (persons.age==16)).astype(int)
-           
+
+@orca.column('persons')
+def age_25less40(persons):
+    return((persons.age.between(25,40,inclusive = False)) | (persons.age==25)).astype(int)
+
+@orca.column('persons')
+def age_40less50(persons):
+    return((persons.age.between(40,50,inclusive = False)) | (persons.age==40)).astype(int)
+
+@orca.column('persons')
+def age_50less60(persons):
+    return((persons.age.between(50,60,inclusive = False)) | (persons.age==50)).astype(int)
+
 @orca.column('households')
 def hh_size_1per(households):
     return(households.persons.isin([1.0])).astype(int)
+
+@orca.column('households')
+def noveh(households):
+    return(households.cars_alt==0).astype(int)
            
 @orca.column('jobs')
 def finance(jobs):
@@ -559,3 +610,19 @@ def info(jobs):
 @orca.column('jobs')
 def scitech(jobs):
     return jobs['sector_id'].isin([54]).astype(int)
+
+@orca.column('persons')
+def TOD_3to6(persons):
+    return(persons['TOD'].isin([0])).astype(int)
+
+@orca.column('persons')
+def TOD_9to1530(persons):
+    return(persons['TOD'].isin([2])).astype(int)
+
+@orca.column('persons')
+def TOD_1530to1830(persons):
+    return(persons['TOD'].isin([3])).astype(int)
+
+@orca.column('persons')
+def TOD_1830up(persons):
+    return(persons['TOD'].isin([4])).astype(int)

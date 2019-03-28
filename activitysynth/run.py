@@ -17,7 +17,7 @@ output_tables = [
     'establishments', 'rentals', 'units']
 output_bucket = 'urbansim-outputs'
 beam_bucket = 'urbansim-beam'
-local_data_dir = './data/'
+local_data_dir = '/home/data/fall_2018/'
 fname_walk = 'walk_net_vars.csv'
 fname_drive = 'drive_net_vars.csv'
 
@@ -99,9 +99,9 @@ if __name__ == "__main__":
         orca.add_table('nodessmall', drive_net_vars)
 
     model_steps = [
-        'wlcm_simulate', 'TOD_choice_simulate',
-        'TOD_distribution_simulate',
-        'auto_ownership_simulate', 'primary_mode_choice_simulate',
+        'wlcm_simulate', 'auto_ownership_simulate', 'TOD_category_simulate',
+        'TOD_dwell_simulate','TOD_distribution_simulate',
+        'primary_mode_choice_simulate',
         'generate_activity_plans']
 
     orca.run(model_steps)
