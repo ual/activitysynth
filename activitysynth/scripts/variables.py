@@ -524,7 +524,7 @@ def hh_inc_150kplus(households):
         households['income'] == 150000)).astype(int)
 
 @orca.column('households')
-def hh_inc_150kless200k(households):
+def hh_inc_150kless250k(households):
     return((
         households['income'] >= 150000) & (
         households['income'] < 250000)).astype(int)

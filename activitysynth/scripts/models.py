@@ -172,21 +172,135 @@ def auto_ownership_simulate(households):
     m = mm.get_step('auto_ownership')
     
     # remove filters, specify out tables
-#     households['cars_alt'] = None
+    households['cars_alt'] = None
     
     m.filters = None
     m.tables = ['households','units','buildings','parcels' ,'nodessmall','nodeswalk']
-    m.out_tables = ['households','units','buildings','parcels' ,'nodessmall','nodeswalk']
     
     m.run()
+ 
 
-#     results = orca.get_table('tripsA').to_frame().set_index('person_id')
-#     households = orca.get_table('households').to_frame()
-#     households = pd.merge(
-#         households, results[['cars_alt']], how='left',
-#         left_index=True, right_index=True)
-#     orca.add_table('households', households)
+@orca.step()
+def TOD_category_simulate(persons):
+    """
+    Generate time of day period choices for the synthetic population
+    home-work and work-home trips.
     
+    """
+    
+    m = mm.get_step('work_TOD_choice')
+    
+    persons['TOD'] = None
+    
+    m.filters = None
+    m.tables = ['persons', 'households', 'jobs']
+    
+    m.run()
+    
+
+@orca.step()
+def TOD_dwell_simulate(persons):
+    """
+    Generate time of day period choices for the synthetic population
+    home-work and work-home trips.
+    
+    """
+    
+    m = mm.get_step('dwell_work')
+    
+    persons['dwell_work'] = None
+    
+    m.filters = None
+    m.tables = ['persons', 'households', 'jobs']
+
+    m.run()
+
+    
+@orca.step()
+def TOD_distribution_simulate():
+    """
+    Generate specific time of day choices for the synthetic population
+    home-work and work-home trips.
+    
+    """
+    TOD_obs = orca.get_table('persons').to_frame(['TOD','dwell_work'])
+    
+    TOD_obs['HW_ET'] = st.johnsonsu.rvs(size= len(TOD_obs), a=-0.71, b=1.00, loc=7.12, scale=1.31)
+    
+    TOD_obs['dwell_exact'] = st.johnsonsu.rvs(size= len(TOD_obs), a=0.49, b=0.94, loc=9.29, scale=1.26)
+    
+    #make sure start times are within the correct period of day:
+    while len(TOD_obs.loc[(TOD_obs['TOD'] == 0) & ((TOD_obs['HW_ET'] < 3) | (TOD_obs['HW_ET'] >= 6))]) > 0:
+        TOD_obs.loc[(TOD_obs['TOD'] == 0) &  ((TOD_obs['HW_ET'] < 3) | (TOD_obs['HW_ET'] >= 6)),
+           'HW_ET'] = st.johnsonsu.rvs(size= len(TOD_obs.loc[(TOD_obs['TOD'] == 0) & ((TOD_obs['HW_ET'] < 3) | (TOD_obs['HW_ET'] >= 6))]), 
+                                       a=-0.71, b=1.00, loc=7.12, scale=1.31)
+
+    while len(TOD_obs.loc[(TOD_obs['TOD'] == 1) & ((TOD_obs['HW_ET'] < 6) | (TOD_obs['HW_ET'] >= 9))]) > 0:
+        TOD_obs.loc[ (TOD_obs['TOD'] == 1) & ((TOD_obs['HW_ET'] < 6) | (TOD_obs['HW_ET'] >= 9)),
+           'HW_ET'] = st.johnsonsu.rvs(size= len(TOD_obs.loc[(TOD_obs['TOD'] == 1) & ((TOD_obs['HW_ET'] < 6) | (TOD_obs['HW_ET'] >= 9))]), 
+                                       a=-0.71, b=1.00, loc=7.12, scale=1.31)
+
+    while len(TOD_obs.loc[(TOD_obs['TOD'] == 2) & ((TOD_obs['HW_ET'] < 9) | (TOD_obs['HW_ET'] >= 15.5))]) > 0:
+        TOD_obs.loc[(TOD_obs['TOD'] == 2) & ((TOD_obs['HW_ET'] < 9) | (TOD_obs['HW_ET'] >= 15.5)),
+           'HW_ET'] = st.johnsonsu.rvs(size= len(TOD_obs.loc[(TOD_obs['TOD'] == 2) & 
+                                                             ((TOD_obs['HW_ET'] < 9) | (TOD_obs['HW_ET'] >= 15.5))]), 
+                                       a=-0.71, b=1.00, loc=7.12, scale=1.31)
+
+    while len(TOD_obs.loc[(TOD_obs['TOD'] == 3) & ((TOD_obs['HW_ET'] < 15.5) | (TOD_obs['HW_ET'] >= 18.5))]) > 0:
+        TOD_obs.loc[(TOD_obs['TOD'] == 3) & ((TOD_obs['HW_ET'] < 15.5) | (TOD_obs['HW_ET'] >= 18.5)),
+           'HW_ET'] = st.johnsonsu.rvs(size= len(TOD_obs.loc[(TOD_obs['TOD'] == 3) & 
+                                                             ((TOD_obs['HW_ET'] < 15.5) | (TOD_obs['HW_ET'] >= 18.5))]), 
+                                       a=-0.71, b=1.00, loc=7.12, scale=1.31)
+
+    while len(TOD_obs.loc[(TOD_obs['TOD'] == 4) & ((TOD_obs['HW_ET'] < 18.5) | (TOD_obs['HW_ET'] >= 27))]) > 0:
+        TOD_obs.loc[(TOD_obs['TOD'] == 4) & ((TOD_obs['HW_ET'] < 18.5) | (TOD_obs['HW_ET'] >= 27)),
+           'HW_ET'] = st.johnsonsu.rvs(size= len(TOD_obs.loc[(TOD_obs['TOD'] == 4) & 
+                                                             ((TOD_obs['HW_ET'] < 18.5) | (TOD_obs['HW_ET'] >= 27))]), 
+                                       a=-0.71, b=1.00, loc=7.12, scale=1.31)
+
+    TOD_obs.loc[ (TOD_obs['HW_ET'] > 24), 'HW_ET'] = TOD_obs['HW_ET'] - 24
+
+    
+    while len(TOD_obs.loc[(TOD_obs['dwell_work'] == 1) & ((TOD_obs['dwell_exact'] <= 0) | (TOD_obs['dwell_exact'] >= 4.5))]) > 0:
+        TOD_obs.loc[(TOD_obs['dwell_work'] == 1) & ((TOD_obs['dwell_exact'] <= 0) | (TOD_obs['dwell_exact'] >= 4.5)),
+           'dwell_exact'] = st.johnsonsu.rvs(size= len(TOD_obs.loc[(TOD_obs['dwell_work'] == 1) & 
+                                                                   ((TOD_obs['dwell_exact'] <= 0) | (TOD_obs['dwell_exact'] >= 4.5))]), 
+                                             a=0.49, b=0.94,loc=9.29, scale=1.26)
+
+    while len(TOD_obs.loc[(TOD_obs['dwell_work'] == 2) & ((TOD_obs['dwell_exact'] < 4.5) | (TOD_obs['dwell_exact'] >= 7.75))]) > 0:
+        TOD_obs.loc[(TOD_obs['dwell_work'] == 2) & ((TOD_obs['dwell_exact'] < 4.5) | (TOD_obs['dwell_exact'] >= 7.75)),
+           'dwell_exact'] = st.johnsonsu.rvs(size= len(TOD_obs.loc[(TOD_obs['dwell_work'] == 2) & 
+                                                               ((TOD_obs['dwell_exact'] < 4.5) | (TOD_obs['dwell_exact'] >= 7.75))]),
+                                             a=0.49, b=0.94, loc=9.29, scale=1.26)
+
+    while len(TOD_obs.loc[(TOD_obs['dwell_work'] == 3) & ((TOD_obs['dwell_exact'] < 7.75) | (TOD_obs['dwell_exact'] >= 9.0))]) > 0:
+        TOD_obs.loc[(TOD_obs['dwell_work'] == 3) & ((TOD_obs['dwell_exact'] < 7.75) | (TOD_obs['dwell_exact'] >= 9.0)),
+           'dwell_exact'] = st.johnsonsu.rvs(size= len(TOD_obs.loc[(TOD_obs['dwell_work'] == 3) & 
+                                                               ((TOD_obs['dwell_exact'] < 7.75) | (TOD_obs['dwell_exact'] >= 9.0))]), 
+                                             a=0.49, b=0.94,loc=9.29, scale=1.26)
+
+    while len(TOD_obs.loc[(TOD_obs['dwell_work'] == 4) & ((TOD_obs['dwell_exact'] < 9.0) | (TOD_obs['dwell_exact'] >= 10.5))]) > 0:
+        TOD_obs.loc[(TOD_obs['dwell_work'] == 4) & ((TOD_obs['dwell_exact'] < 9.0) | (TOD_obs['dwell_exact'] >= 10.5)),
+           'dwell_exact'] = st.johnsonsu.rvs(size= len(TOD_obs.loc[(TOD_obs['dwell_work'] == 4) & 
+                                                               ((TOD_obs['dwell_exact'] < 9.0) | (TOD_obs['dwell_exact'] >= 10.5))]), 
+                                             a=0.49, b=0.94, loc=9.29, scale=1.26)
+
+    while len(TOD_obs.loc[(TOD_obs['dwell_work'] == 5) & ((TOD_obs['dwell_exact'] < 10.5) | (TOD_obs['dwell_exact'] >= 24))]) > 0:
+        TOD_obs.loc[(TOD_obs['dwell_work'] == 5) & ((TOD_obs['dwell_exact'] < 10.5) | (TOD_obs['dwell_exact'] >= 24)),
+           'dwell_exact'] = st.johnsonsu.rvs(size= len(TOD_obs.loc[(TOD_obs['dwell_work'] == 5) & 
+                                                               ((TOD_obs['dwell_exact'] < 10.5) | (TOD_obs['dwell_exact'] >= 24))]), 
+                                             a=0.49, b=0.94, loc=9.29, scale=1.26)
+    
+    TOD_obs['WH_ST'] = TOD_obs['HW_ET'] + TOD_obs['dwell_exact']
+
+    TOD_obs.loc[ (TOD_obs['WH_ST'] > 24), 'WH_ST'] = TOD_obs['WH_ST'] - 24
+    
+    persons = pd.merge(
+        persons, TOD_obs[['HW_ET', 'WH_ST']], how='left',
+        left_index=True, right_index=True)
+    orca.add_table('persons', persons)
+
+
 @orca.step()
 def primary_mode_choice_simulate(persons):
     """
@@ -275,157 +389,11 @@ def primary_mode_choice_simulate(persons):
     m.filters = None
     m.out_filters = None
     m.tables = ['persons_CHTS_format']
-    m.out_tables = 'persons_CHTS_format'
     m.out_column = 'primary_commute_mode'
 
     m.run()
 
-
-@orca.step()
-def TOD_category_simulate(skims):
-    """
-    Generate time of day period choices for the synthetic population
-    home-work and work-home trips.
     
-    """
-    TOD_obs = orca.merge_tables('persons', ['persons', 'households', 'jobs'])
-
-    TOD_obs.dropna(subset = ['age', 'edu', 'sex','hours','race_id', 
-                             'income','persons', 'tenure','sector_id'])
-    
-    TOD_obs.reset_index(inplace=True)
-    
-    m = mm.get_step('work_TOD_choice')
-    
-    @orca.table(cache=True)
-    def tripsA():
-        return TOD_obs
-    
-    m.run()
-
-    results = orca.get_table('tripsA').to_frame().set_index('person_id')
-    persons = orca.get_table('persons').to_frame()
-    persons = pd.merge(
-        persons, results[['TOD']], how='left',
-        left_index=True, right_index=True)
-    orca.add_table('persons', persons)
-
-@orca.step()
-def TOD_dwell_simulate(skims):
-    """
-    Generate time of day period choices for the synthetic population
-    home-work and work-home trips.
-    
-    """
-    TOD_obs = orca.merge_tables('persons', ['persons', 'households', 'jobs'])
-
-    TOD_obs.dropna(subset = ['age', 'edu', 'sex','hours','race_id', 
-                             'income','persons', 'tenure','sector_id'])
-    
-    TOD_obs.reset_index(inplace=True)
-    
-    m = mm.get_step('dwell_work')
-    
-    @orca.table(cache=True)
-    def tripsA():
-        return TOD_obs
-    
-    m.run()
-
-    results = orca.get_table('tripsA').to_frame().set_index('person_id')
-    persons = orca.get_table('persons').to_frame()
-    persons = pd.merge(
-        persons, results[['dwell_work']], how='left',
-        left_index=True, right_index=True)
-    orca.add_table('persons', persons)
-    
-@orca.step()
-def TOD_distribution_simulate():
-    """
-    Generate specific time of day choices for the synthetic population
-    home-work and work-home trips.
-    
-    """
-    persons = orca.get_table('persons').to_frame()
-    
-    TOD_obs = persons.copy()
-    
-    TOD_obs['HW_ET'] = st.johnsonsu.rvs(size= len(TOD_obs), a=-0.71, b=1.00, loc=7.12, scale=1.31)
-    
-    TOD_obs['dwell_exact'] = st.johnsonsu.rvs(size= len(TOD_obs), a=0.49, b=0.94, loc=9.29, scale=1.26)
-    
-    #make sure start times are within the correct period of day:
-    while len(TOD_obs.loc[(TOD_obs['TOD'] == 0) & ((TOD_obs['HW_ET'] < 3) | (TOD_obs['HW_ET'] >= 6))]) > 0:
-        TOD_obs.loc[(TOD_obs['TOD'] == 0) &  ((TOD_obs['HW_ET'] < 3) | (TOD_obs['HW_ET'] >= 6)),
-           'HW_ET'] = st.johnsonsu.rvs(size= len(TOD_obs.loc[(TOD_obs['TOD'] == 0) & ((TOD_obs['HW_ET'] < 3) | (TOD_obs['HW_ET'] >= 6))]), 
-                                       a=-0.71, b=1.00, loc=7.12, scale=1.31)
-
-    while len(TOD_obs.loc[(TOD_obs['TOD'] == 1) & ((TOD_obs['HW_ET'] < 6) | (TOD_obs['HW_ET'] >= 9))]) > 0:
-        TOD_obs.loc[ (TOD_obs['TOD'] == 1) & ((TOD_obs['HW_ET'] < 6) | (TOD_obs['HW_ET'] >= 9)),
-           'HW_ET'] = st.johnsonsu.rvs(size= len(TOD_obs.loc[(TOD_obs['TOD'] == 1) & ((TOD_obs['HW_ET'] < 6) | (TOD_obs['HW_ET'] >= 9))]), 
-                                       a=-0.71, b=1.00, loc=7.12, scale=1.31)
-
-    while len(TOD_obs.loc[(TOD_obs['TOD'] == 2) & ((TOD_obs['HW_ET'] < 9) | (TOD_obs['HW_ET'] >= 15.5))]) > 0:
-        TOD_obs.loc[(TOD_obs['TOD'] == 2) & ((TOD_obs['HW_ET'] < 9) | (TOD_obs['HW_ET'] >= 15.5)),
-           'HW_ET'] = st.johnsonsu.rvs(size= len(TOD_obs.loc[(TOD_obs['TOD'] == 2) & 
-                                                             ((TOD_obs['HW_ET'] < 9) | (TOD_obs['HW_ET'] >= 15.5))]), 
-                                       a=-0.71, b=1.00, loc=7.12, scale=1.31)
-
-    while len(TOD_obs.loc[(TOD_obs['TOD'] == 3) & ((TOD_obs['HW_ET'] < 15.5) | (TOD_obs['HW_ET'] >= 18.5))]) > 0:
-        TOD_obs.loc[(TOD_obs['TOD'] == 3) & ((TOD_obs['HW_ET'] < 15.5) | (TOD_obs['HW_ET'] >= 18.5)),
-           'HW_ET'] = st.johnsonsu.rvs(size= len(TOD_obs.loc[(TOD_obs['TOD'] == 3) & 
-                                                             ((TOD_obs['HW_ET'] < 15.5) | (TOD_obs['HW_ET'] >= 18.5))]), 
-                                       a=-0.71, b=1.00, loc=7.12, scale=1.31)
-
-    while len(TOD_obs.loc[(TOD_obs['TOD'] == 4) & ((TOD_obs['HW_ET'] < 18.5) | (TOD_obs['HW_ET'] >= 27))]) > 0:
-        TOD_obs.loc[(TOD_obs['TOD'] == 4) & ((TOD_obs['HW_ET'] < 18.5) | (TOD_obs['HW_ET'] >= 27)),
-           'HW_ET'] = st.johnsonsu.rvs(size= len(TOD_obs.loc[(TOD_obs['TOD'] == 4) & 
-                                                             ((TOD_obs['HW_ET'] < 18.5) | (TOD_obs['HW_ET'] >= 27))]), 
-                                       a=-0.71, b=1.00, loc=7.12, scale=1.31)
-
-    TOD_obs.loc[ (TOD_obs['HW_ET'] > 24), 'HW_ET'] = TOD_obs['HW_ET'] - 24
-
-    
-    while len(TOD_obs.loc[(TOD_obs['dwell_work'] == 1) & (TOD_obs['dwell_exact'] >= 4.5)]) > 0:
-        TOD_obs.loc[(TOD_obs['dwell_work'] == 1) & (TOD_obs['dwell_exact'] >= 4.5),
-           'dwell_exact'] = st.johnsonsu.rvs(size= len(TOD_obs.loc[(TOD_obs['dwell_work'] == 1) & 
-                                                                   (TOD_obs['dwell_exact'] >= 4.5)]), 
-                                             a=0.49, b=0.94,loc=9.29, scale=1.26)
-
-    while len(TOD_obs.loc[(TOD_obs['dwell_work'] == 2) & ((TOD_obs['dwell_exact'] < 4.5) | (TOD_obs['dwell_exact'] >= 7.75))]) > 0:
-        TOD_obs.loc[(TOD_obs['dwell_work'] == 2) & ((TOD_obs['dwell_exact'] < 4.5) | (TOD_obs['dwell_exact'] >= 7.75)),
-           'dwell_exact'] = st.johnsonsu.rvs(size= len(TOD_obs.loc[(TOD_obs['dwell_work'] == 2) & 
-                                                               ((TOD_obs['dwell_exact'] < 4.5) | (TOD_obs['dwell_exact'] >= 7.75))]),
-                                             a=0.49, b=0.94, loc=9.29, scale=1.26)
-
-    while len(TOD_obs.loc[(TOD_obs['dwell_work'] == 3) & ((TOD_obs['dwell_exact'] < 7.75) | (TOD_obs['dwell_exact'] >= 9.0))]) > 0:
-        TOD_obs.loc[(TOD_obs['dwell_work'] == 3) & ((TOD_obs['dwell_exact'] < 7.75) | (TOD_obs['dwell_exact'] >= 9.0)),
-           'dwell_exact'] = st.johnsonsu.rvs(size= len(TOD_obs.loc[(TOD_obs['dwell_work'] == 3) & 
-                                                               ((TOD_obs['dwell_exact'] < 7.75) | (TOD_obs['dwell_exact'] >= 9.0))]), 
-                                             a=0.49, b=0.94,loc=9.29, scale=1.26)
-
-    while len(TOD_obs.loc[(TOD_obs['dwell_work'] == 4) & ((TOD_obs['dwell_exact'] < 9.0) | (TOD_obs['dwell_exact'] >= 10.5))]) > 0:
-        TOD_obs.loc[(TOD_obs['dwell_work'] == 4) & ((TOD_obs['dwell_exact'] < 9.0) | (TOD_obs['dwell_exact'] >= 10.5)),
-           'dwell_exact'] = st.johnsonsu.rvs(size= len(TOD_obs.loc[(TOD_obs['dwell_work'] == 4) & 
-                                                               ((TOD_obs['dwell_exact'] < 9.0) | (TOD_obs['dwell_exact'] >= 10.5))]), 
-                                             a=0.49, b=0.94, loc=9.29, scale=1.26)
-
-    while len(TOD_obs.loc[(TOD_obs['dwell_work'] == 5) & ((TOD_obs['dwell_exact'] < 10.5) | (TOD_obs['dwell_exact'] >= 24))]) > 0:
-        TOD_obs.loc[(TOD_obs['dwell_work'] == 5) & ((TOD_obs['dwell_exact'] < 10.5) | (TOD_obs['dwell_exact'] >= 24)),
-           'dwell_exact'] = st.johnsonsu.rvs(size= len(TOD_obs.loc[(TOD_obs['dwell_work'] == 5) & 
-                                                               ((TOD_obs['dwell_exact'] < 10.5) | (TOD_obs['dwell_exact'] >= 24))]), 
-                                             a=0.49, b=0.94, loc=9.29, scale=1.26)
-    
-    TOD_obs['WH_ST'] = TOD_obs['HW_ET'] + TOD_obs['dwell_exact']
-
-    TOD_obs.loc[ (TOD_obs['WH_ST'] > 24), 'WH_ST'] = TOD_obs['WH_ST'] - 24
-    
-    persons = pd.merge(
-        persons, TOD_obs[['HW_ET', 'WH_ST']], how='left',
-        left_index=True, right_index=True)
-    orca.add_table('persons', persons)
-
-
 @orca.step()
 def generate_activity_plans():
 
