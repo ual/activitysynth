@@ -26,7 +26,8 @@ def initialize_network_small():
     """
 
     @orca.injectable('netsmall', cache=True)
-    def build_networksmall(data_mode, store, s3_input_data_url, local_data_dir):
+    def build_networksmall(
+            data_mode, store, s3_input_data_url, local_data_dir, csv_fnames):
         if data_mode == 's3':
             nodes = pd.read_parquet(s3_input_data_url.format('nodessmall'))
             edges = pd.read_parquet(s3_input_data_url.format('edgessmall'))
@@ -35,9 +36,9 @@ def initialize_network_small():
             edges = store['edgessmall']
         elif data_mode == 'csv':
             nodes = pd.read_csv(
-                local_data_dir + 'bay_area_tertiary_strongly_nodes.csv').set_index('osmid')
+                local_data_dir + csv_fnames['drive_nodes']).set_index('osmid')
             edges = pd.read_csv(
-                local_data_dir + 'bay_area_tertiary_strongly_edges.csv').set_index('uniqueid')
+                local_data_dir + csv_fnames['drive_edges']).set_index('uniqueid')
         netsmall = pdna.Network(
             nodes.x, nodes.y, edges.u,
             edges.v, edges[['length']],
@@ -54,7 +55,8 @@ def initialize_network_walk():
     """
 
     @orca.injectable('netwalk', cache=True)
-    def build_networkwalk(data_mode, store, s3_input_data_url, local_data_dir):
+    def build_networkwalk(
+            data_mode, store, s3_input_data_url, local_data_dir, csv_fnames):
         if data_mode == 's3':
             nodes = pd.read_parquet(s3_input_data_url.format('nodeswalk'))
             edges = pd.read_parquet(s3_input_data_url.format('edgeswalk'))
@@ -63,9 +65,9 @@ def initialize_network_walk():
             edges = store['edgeswalk']
         elif data_mode == 'csv':
             nodes = pd.read_csv(
-                local_data_dir + 'bayarea_walk_nodes.csv').set_index('osmid')
+                local_data_dir + csv_fnames['walk_nodes']).set_index('osmid')
             edges = pd.read_csv(
-                local_data_dir + 'bayarea_walk_edges.csv').set_index(
+                local_data_dir + csv_fnames['walk_edges']).set_index(
                 'uniqueid')
         netwalk = pdna.Network(
             nodes.x, nodes.y, edges.u,
@@ -203,8 +205,11 @@ def primary_mode_choice_simulate(persons):
         hh_df = orca.get_table('households').to_frame().reset_index()[['household_id','cars','tenure','income','persons','building_id']]
         jobs_df = orca.get_table('jobs').to_frame().reset_index()[['job_id','building_id']]
         buildings_df = orca.get_table('buildings').to_frame().reset_index()[['building_id','parcel_id']]
-        parcels_df = orca.get_table('parcels').to_frame().reset_index()[['primary_id','zone_id']]
-        parcels_df.rename(columns = {'primary_id':'parcel_id'}, inplace = True)
+        try:
+            parcels_df = orca.get_table('parcels').to_frame().reset_index()[['parcel_id','zone_id']]
+        except KeyError:
+            parcels_df = orca.get_table('parcels').to_frame().reset_index()[['primary_id','zone_id']]
+            parcels_df.rename(columns = {'primary_id':'parcel_id'}, inplace = True)
 
         # rename columns/change values to match CHTS
         persons.columns = ['person_id','GEND','AGE','RACE1','JOBS','EDUCA','household_id','job_id', 'TOD']
@@ -283,7 +288,7 @@ def TOD_choice_simulate(skims):
     """
     TOD_obs = orca.merge_tables('persons', ['persons', 'households', 'jobs'])
     
-    TOD_obs.dropna(inplace = True)
+    # TOD_obs.dropna(inplace = True)
     TOD_obs.reset_index(inplace=True)
 
     skims = orca.get_table('skims').to_frame()

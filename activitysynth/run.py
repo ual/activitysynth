@@ -3,7 +3,7 @@ import pandas as pd
 import warnings
 import urbansim_templates
 import argparse
-import boto3
+import s3fs
 
 from activitysynth.scripts import models, datasources, variables
 
@@ -11,19 +11,74 @@ from activitysynth.scripts import models, datasources, variables
 warnings.simplefilter('ignore')
 accessibilities_mode = 'compute'
 year = 2010
+scenario = 'b-ht'
 data_mode = 'csv'
 output_tables = [
     'parcels', 'buildings', 'jobs', 'persons', 'households',
     'establishments', 'rentals', 'units']
-output_bucket = 'urbansim-outputs'
+io_bucket = 'urbansim-outputs'
 beam_bucket = 'urbansim-beam'
-local_data_dir = './data/'
-fname_walk = 'walk_net_vars.csv'
-fname_drive = 'drive_net_vars.csv'
+write_out = True
+output_format = 'csv'
+csv_fnames = {
+    'parcels': 'parcels.csv',
+    'buildings': 'buildings.csv',
+    'jobs': 'jobs.csv',
+    'establishments': 'establishments.csv',
+    'households': 'households.csv',
+    'persons': 'persons.csv',
+    'rentals': 'craigslist.csv',
+    'units': 'units.csv',
+    'skims': 'skims.csv',
+    'drive_nodes': 'bay_area_tertiary_strongly_nodes.csv',
+    'drive_edges': 'bay_area_tertiary_strongly_edges.csv',
+    'drive_access_vars': 'drive_net_vars.csv',
+    'walk_nodes': 'bayarea_walk_nodes.csv',
+    'walk_edges': 'bayarea_walk_edges.csv',
+    'walk_access_vars': 'walk_net_vars.csv',
+}
+
+
+def send_output_to_s3(
+        output_tables, io_bucket, beam_bucket, year, scenario=None,
+        output_format='parquet'):
+
+    # save tables to s3
+    if output_format == 'csv':
+        s3 = s3fs.S3FileSystem(anon=False)
+
+    for table_name in output_tables:
+        print(table_name)
+        table = orca.get_table(table_name)
+        df = table.to_frame(table.local_columns)
+        if scenario:
+            table_name = scenario + '/' + table_name
+        s3_url = 's3://{0}/{1}/{2}.{3}'.format(
+            io_bucket, year, table_name, output_format)
+        if output_format == 'parquet':
+            df.to_parquet(s3_url, engine='pyarrow')
+        elif output_format == 'csv':
+            with s3.open(s3_url, 'w') as f:
+                df.to_csv(f)
+
+    # save plans to s3
+    table_name = 'activity_plans'
+    print(table_name)
+    plans = orca.get_table('plans').to_frame()
+    if scenario:
+        table_name = scenario + '/' + table_name
+    s3_url = 's3://{0}/{1}/{2}.{3}'.format(
+        beam_bucket, year, table_name, output_format)
+    if output_format == 'parquet':
+        plans.to_parquet(s3_url)
+    elif output_format == 'csv':
+        with s3.open(s3_url, 'w') as f:
+            plans.to_csv(f)
 
 
 if __name__ == "__main__":
 
+    # parse runtime arguments
     parser = argparse.ArgumentParser(description='Run ActivitySynth models.')
     parser.add_argument(
         "--data-mode", "-d", dest='data_mode', action="store",
@@ -38,7 +93,11 @@ if __name__ == "__main__":
 
     if options.year:
         year = options.year
-        print("The year is {0}.".format(year))
+    print("The year is {0}.".format(year))
+
+    local_data_dir = '/home/data/spring_2019/{0}/'.format(str(year))
+    if scenario:
+        local_data_dir += '{0}/'.format(scenario)
 
     if options.data_mode:
         data_mode = options.data_mode
@@ -46,13 +105,15 @@ if __name__ == "__main__":
     if options.accessibilities_mode:
         accessibilities_mode = options.accessibilities_mode
 
+    # add orca injectables
     orca.add_injectable('data_mode', data_mode)
+    orca.add_injectable('csv_fnames', csv_fnames)
 
     if data_mode == 'h5':
         @orca.injectable('store', cache=True)
         def hdfstore():
             return pd.HDFStore(
-                (local_data_dir + "model_data.h5"), mode='r')
+                (local_data_dir + "model_data_output.h5"), mode='r')
         orca.add_injectable('s3_input_data_url', None)
         orca.add_injectable('local_data_dir', None)
 
@@ -60,7 +121,7 @@ if __name__ == "__main__":
         orca.add_injectable('store', None)
         orca.add_injectable(
             's3_input_data_url',
-            's3://urbansim-baseyear-inputs/{0}.parquet.gz')
+            's3://{0}/{1}/'.format(io_bucket, year) + '{0}.parquet.gz')
         orca.add_injectable('local_data_dir', None)
 
     elif data_mode == 'csv':
@@ -86,15 +147,17 @@ if __name__ == "__main__":
             'network_aggregations_small', 'network_aggregations_walk']
         orca.run(model_steps)
         orca.get_table('nodeswalk').to_frame().to_csv(
-            local_data_dir + fname_walk)
+            local_data_dir + csv_fnames['walk_access_vars'])
         orca.get_table('nodessmall').to_frame().to_csv(
-            local_data_dir + fname_drive)
+            local_data_dir + csv_fnames['drive_access_vars'])
 
     elif accessibilities_mode == 'stored':
         walk_net_vars = pd.read_csv(
-            local_data_dir + fname_walk, index_col='osmid')
+            local_data_dir + csv_fnames['walk_access_vars'],
+            index_col='osmid')
         drive_net_vars = pd.read_csv(
-            local_data_dir + fname_drive, index_col='osmid')
+            local_data_dir + csv_fnames['drive_access_vars'],
+            index_col='osmid')
         orca.add_table('nodeswalk', walk_net_vars)
         orca.add_table('nodessmall', drive_net_vars)
 
@@ -106,21 +169,8 @@ if __name__ == "__main__":
 
     orca.run(model_steps)
 
-    if data_mode == 's3':
-
-        bucket_name = 's3://{0}/{1}'.format(output_bucket, year)
-        s3 = boto3.resource('s3')
-
-        # save tables to parquet on s3
-        for table_name in output_tables:
-            df = orca.get_table(table_name).to_frame()
-            s3_url = 's3://{0}/{1}/{2}.parquet.gz'.format(
-                output_bucket, year, table_name)
-
-            df.to_parquet(s3_url, compression='gzip', engine='pyarrow')
-
-        # save plans to parquet s3
-        plans = orca.get_table('plans').to_frame()
-        s3_url = 's3://{0}/{1}/{2}.parquet.gz'.format(
-            beam_bucket, year, 'activity_plans')
-        plans.to_parquet(s3_url, compression='gzip')
+    if write_out:
+        if data_mode == 's3' or data_mode == 'csv':
+            send_output_to_s3(
+                output_tables, io_bucket, beam_bucket, year, scenario,
+                output_format)
