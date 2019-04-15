@@ -5,6 +5,60 @@ import numpy as np
 # data documentation: https://berkeley.app.box.com/notes/282712547032
 
 
+# @orca.table()
+# def beam_skims(store):
+#     df = store['beam_skims']
+#     df = df[(df['period'] == 'AM') & (df['mode'] == 'CAR')]
+#     assert len(df) == 2114116
+#     df = df.rename(
+#         columns={'origTaz': 'from_zone_id', 'destTaz': 'to_zone_id'})
+#     df = df.set_index(['from_zone_id', 'to_zone_id'])
+#     df['gen_tt_min'] = df['generalizedTimeInS'] / 60
+#     return df
+
+@orca.table('beam_skims', cache=True)
+def zones(data_mode, store, s3_input_data_url, local_data_dir):
+    if data_mode == 's3':
+        df = pd.read_parquet(s3_input_data_url.format('beam_skims'))
+    elif data_mode == 'h5':
+        df = store['beam_skims']
+    elif data_mode == 'csv':
+        df = pd.read_csv(
+            local_data_dir + 'sfbay-smart-base__2019-03-28_14-22-12/ITERS/it.30/30.skims.csv')
+    
+#     df = df[(df['period'] == 'AM') & (df['mode'] == 'CAR')]
+#     assert len(df) == 2114116
+    df = df.rename(
+        columns={'origTaz': 'from_zone_id', 'destTaz': 'to_zone_id'})
+    df['gen_tt_min'] = df['generalizedTimeInS'] / 60
+    df['period'] = np.where(df['hour'].isin([6,7,8]),'AM','OffPeak')
+    df.loc[df.hour.isin([16,17,18]), 'period'] = "PM"
+    df = pd.merge(df, df.groupby(['from_zone_id','to_zone_id',
+                                  'period','mode'])['gen_tt_min'].mean().reset_index(['from_zone_id', 'to_zone_id']),  
+                  how='left', on=['from_zone_id','to_zone_id','period','mode'],suffixes=('_hour', ''))
+    df = df.set_index(['from_zone_id', 'to_zone_id'])
+
+    return df
+
+# these are shapes - "zones" in the bay area
+@orca.table('zones', cache=True)
+def zones(data_mode, store, s3_input_data_url, local_data_dir):
+    if data_mode == 's3':
+        df = pd.read_parquet(s3_input_data_url.format('zones'))
+    elif data_mode == 'h5':
+        df = store['zones']
+    elif data_mode == 'csv':
+        df = pd.read_csv(
+            local_data_dir + 'zones.csv', index_col='zone_id',
+            dtype={'zone_id': int})
+        df.drop('tract', axis=1, inplace=True)
+    return df
+
+# # sort index so it prints out nicely when we want it to
+#     df = store['zones'].sort_index()
+#     df.drop('tract', axis=1, inplace=True)
+#     return df
+
 @orca.table('parcels', cache=True)
 def parcels(data_mode, store, s3_input_data_url, local_data_dir):
     if data_mode == 's3':
