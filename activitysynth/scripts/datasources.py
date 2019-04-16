@@ -166,6 +166,20 @@ def units(data_mode, store, s3_input_data_url, local_data_dir, csv_fnames):
     return df
 
 
+@orca.table('zones', cache=True)
+def zones(data_mode, store, s3_input_data_url, local_data_dir):
+    if data_mode == 's3':
+        df = pd.read_parquet(s3_input_data_url.format('zones'))
+    elif data_mode == 'h5':
+        df = store['zones']
+    elif data_mode == 'csv':
+        df = pd.read_csv(
+            local_data_dir + 'zones.csv', index_col='zone_id',
+            dtype={'zone_id': int})
+        df.drop('tract', axis=1, inplace=True)
+    return df
+
+
 # Tables from Jayne Chang
 
 # Append AM peak UrbanAccess transit accessibility variables to parcels table
@@ -192,6 +206,55 @@ def skims(data_mode, store, s3_input_data_url, local_data_dir, csv_fnames):
     return df
 
 
+# BEAM Skims
+@orca.table()
+def beam_drive_skims(
+        data_mode, store, s3_input_data_url, local_data_dir, csv_fnames):
+    """
+    Load BEAM skims, convert travel time to minutes
+    """
+    if data_mode == 's3':
+        df = pd.read_parquet(s3_input_data_url.format('beam_drive_skims'))
+    elif data_mode == 'h5':
+        df = store['beam_drive_skims']
+    elif data_mode == 'csv':
+        df = pd.read_csv(local_data_dir + csv_fnames['beam_drive_skims'])
+
+    # morning peak
+    df = df[df['period'] == 'AM']
+    assert len(df) == 2114116
+    df = df.rename(
+        columns={'origTaz': 'from_zone_id', 'destTaz': 'to_zone_id'})
+    df = df.set_index(['from_zone_id', 'to_zone_id'])
+
+    # seconds to minutes
+    df['gen_tt_CAR'] = df['generalizedTimeInS'] / 60
+    return df
+
+
+@orca.table()
+def beam_skims(
+        data_mode, store, s3_input_data_url, local_data_dir, csv_fnames):
+    """
+    Load BEAM skims, convert travel time to minutes
+    """
+    if data_mode == 's3':
+        df = pd.read_parquet(s3_input_data_url.format('beam_skims'))
+    elif data_mode == 'h5':
+        df = store['beam_skims']
+    elif data_mode == 'csv':
+        df = pd.read_csv(local_data_dir + csv_fnames['beam_skims'])
+
+    df.rename(columns={
+        'generalizedCost': 'gen_cost', 'origTaz': 'from_zone_id',
+        'destTaz': 'to_zone_id'}, inplace=True)
+
+    # seconds to minutes
+    df['gen_tt'] = df['generalizedTimeInS'] / 60
+
+    return df
+
+
 # Broadcasts, a.k.a. merge relationships
 orca.broadcast(
     'parcels', 'buildings', cast_index=True, onto_on='parcel_id')
@@ -209,11 +272,7 @@ orca.broadcast(
     'nodeswalk', 'parcels', cast_index=True, onto_on='node_id_walk')
 orca.broadcast(
     'nodeswalk', 'rentals', cast_index=True, onto_on='node_id_walk')
-orca.broadcast(
-    'nodessmall', 'rentals', cast_index=True, onto_on='node_id_small')
-orca.broadcast(
-    'nodessmall', 'parcels', cast_index=True, onto_on='node_id_small')
-orca.broadcast(
-    'nodesbeam', 'parcels', cast_index=True, onto_on='node_id_beam')
-orca.broadcast(
-    'nodesbeam', 'rentals', cast_index=True, onto_on='node_id_beam')
+# orca.broadcast(
+#     'nodessmall', 'rentals', cast_index=True, onto_on='node_id_small')
+# orca.broadcast(
+#     'nodessmall', 'parcels', cast_index=True, onto_on='node_id_small')
