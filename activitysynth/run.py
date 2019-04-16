@@ -150,16 +150,16 @@ if __name__ == "__main__":
 
     if accessibilities_mode == 'compute':
         model_steps = [
-            # 'network_aggregations_small',
-            # 'network_aggregations_walk',
+            'network_aggregations_small',
+            'network_aggregations_walk',
             'impute_missing_skims',
             'skims_aggregations_drive',
             'skims_aggregations_other']
         orca.run(model_steps)
-        # orca.get_table('nodeswalk').to_frame().to_csv(
-        #     local_data_dir + csv_fnames['walk_access_vars'])
-        # orca.get_table('nodessmall').to_frame().to_csv(
-        #     local_data_dir + csv_fnames['drive_access_vars'])
+        orca.get_table('nodeswalk').to_frame().to_csv(
+            local_data_dir + csv_fnames['walk_access_vars'])
+        orca.get_table('nodessmall').to_frame().to_csv(
+            local_data_dir + csv_fnames['drive_access_vars'])
         orca.get_table('zones').to_frame().to_csv(
             local_data_dir + csv_fnames['zone_access_vars'])
 
@@ -177,16 +177,16 @@ if __name__ == "__main__":
         orca.add_table('nodessmall', drive_net_vars)
         orca.add_table('zones', zones)
 
-    # model_steps = [
-    #     'wlcm_simulate', 'TOD_choice_simulate',
-    #     'TOD_distribution_simulate',
-    #     'auto_ownership_simulate', 'primary_mode_choice_simulate',
-    #     'generate_activity_plans']
+    model_steps = [
+        'wlcm_simulate', 'TOD_choice_simulate',
+        'TOD_distribution_simulate',
+        'auto_ownership_simulate', 'primary_mode_choice_simulate',
+        'generate_activity_plans']
 
-    # orca.run(model_steps)
+    orca.run(model_steps)
 
-    # if write_out:
-    #     if data_mode == 's3' or data_mode == 'csv':
-    #         send_output_to_s3(
-    #             output_tables, io_bucket, beam_bucket, year, scenario,
-    #             output_format)
+    if write_out:
+        if data_mode == 's3' or data_mode == 'csv':
+            send_output_to_s3(
+                output_tables, io_bucket, beam_bucket, year, scenario,
+                output_format)
