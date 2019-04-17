@@ -11,31 +11,37 @@ from activitysynth.scripts import models, datasources, variables
 warnings.simplefilter('ignore')
 accessibilities_mode = 'compute'
 year = 2010
-scenario = 'b-ht'
+scenario = None
 data_mode = 'csv'
 output_tables = [
     'parcels', 'buildings', 'jobs', 'persons', 'households',
     'establishments', 'rentals', 'units']
 io_bucket = 'urbansim-outputs'
 beam_bucket = 'urbansim-beam'
-write_out = True
+write_out = False
 output_format = 'csv'
 csv_fnames = {
-    'parcels': 'parcels.csv',
-    'buildings': 'buildings.csv',
-    'jobs': 'jobs.csv',
-    'establishments': 'establishments.csv',
-    'households': 'households.csv',
-    'persons': 'persons.csv',
-    'rentals': 'craigslist.csv',
-    'units': 'units.csv',
-    'skims': 'skims.csv',
+    'parcels': 'parcel_attr.csv',
+    'buildings': 'buildings_v2.csv',
+    'jobs': 'jobs_v2.csv',
+    'establishments': 'establishments_v2.csv',
+    'households': 'households_v2.csv',
+    'persons': 'persons_v3.csv',
+    'rentals': 'MTC_craigslist_listings_7-10-18.csv',
+    'units': 'units_v2.csv',
+    'skims': 'skims_110118.csv',
+    'beam_drive_skims': 'sfbay-smart-base__2019-03-28_14-22-12/' +
+            'ITERS/it.30/30.skimsExcerpt.csv',
+    'beam_skims': 'sfbay-smart-base__2019-03-28_14-22-12/' +
+            'ITERS/it.30/30.skims.csv',
     'drive_nodes': 'bay_area_tertiary_strongly_nodes.csv',
     'drive_edges': 'bay_area_tertiary_strongly_edges.csv',
     'drive_access_vars': 'drive_net_vars.csv',
     'walk_nodes': 'bayarea_walk_nodes.csv',
     'walk_edges': 'bayarea_walk_edges.csv',
     'walk_access_vars': 'walk_net_vars.csv',
+    'zones': 'zones.csv',
+    'zone_access_vars': 'zones_w_access_vars.csv'
 }
 
 
@@ -134,22 +140,28 @@ if __name__ == "__main__":
             'Must specifiy a valid data mode. Valid options '
             'include "csv", "h5", and "s3".')
 
-    # initialize network
+    # initialize networks
     model_steps = [
         'initialize_network_small',
-        'initialize_network_walk'
+        'initialize_network_walk',
     ]
 
     orca.run(model_steps)
 
     if accessibilities_mode == 'compute':
         model_steps = [
-            'network_aggregations_small', 'network_aggregations_walk']
+            'network_aggregations_small',
+            'network_aggregations_walk',
+            'impute_missing_skims',
+            'skims_aggregations_drive',
+            'skims_aggregations_other']
         orca.run(model_steps)
         orca.get_table('nodeswalk').to_frame().to_csv(
             local_data_dir + csv_fnames['walk_access_vars'])
         orca.get_table('nodessmall').to_frame().to_csv(
             local_data_dir + csv_fnames['drive_access_vars'])
+        orca.get_table('zones').to_frame().to_csv(
+            local_data_dir + csv_fnames['zone_access_vars'])
 
     elif accessibilities_mode == 'stored':
         walk_net_vars = pd.read_csv(
@@ -158,8 +170,12 @@ if __name__ == "__main__":
         drive_net_vars = pd.read_csv(
             local_data_dir + csv_fnames['drive_access_vars'],
             index_col='osmid')
+        zones = pd.read_csv(
+            local_data_dir + csv_fnames['zone_access_vars'],
+            index_col='zone_id', dtype={'zone_id': int})
         orca.add_table('nodeswalk', walk_net_vars)
         orca.add_table('nodessmall', drive_net_vars)
+        orca.add_table('zones', zones)
 
     model_steps = [
         'wlcm_simulate', 'TOD_choice_simulate',
