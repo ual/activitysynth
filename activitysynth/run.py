@@ -34,13 +34,13 @@ csv_fnames = {
             'ITERS/it.30/30.skimsExcerpt.csv',
     'beam_skims': 'sfbay-smart-base__2019-03-28_14-22-12/' +
             'ITERS/it.30/30.skims.csv',
-    'taz_geoms': 'taz_geoms.csv',
     'drive_nodes': 'bay_area_tertiary_strongly_nodes.csv',
     'drive_edges': 'bay_area_tertiary_strongly_edges.csv',
     'drive_access_vars': 'drive_net_vars.csv',
     'walk_nodes': 'bayarea_walk_nodes.csv',
     'walk_edges': 'bayarea_walk_edges.csv',
     'walk_access_vars': 'walk_net_vars.csv',
+    'zones': 'zones.csv',
     'zone_access_vars': 'zones_w_access_vars.csv'
 }
 

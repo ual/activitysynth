@@ -167,14 +167,14 @@ def units(data_mode, store, s3_input_data_url, local_data_dir, csv_fnames):
 
 
 @orca.table('zones', cache=True)
-def zones(data_mode, store, s3_input_data_url, local_data_dir):
+def zones(data_mode, store, s3_input_data_url, local_data_dir, csv_fnames):
     if data_mode == 's3':
         df = pd.read_parquet(s3_input_data_url.format('zones'))
     elif data_mode == 'h5':
         df = store['zones']
     elif data_mode == 'csv':
         df = pd.read_csv(
-            local_data_dir + 'zones.csv', index_col='zone_id',
+            local_data_dir + csv_fnames['zones'], index_col='zone_id',
             dtype={'zone_id': int})
         df.drop('tract', axis=1, inplace=True)
     return df
@@ -207,7 +207,7 @@ def skims(data_mode, store, s3_input_data_url, local_data_dir, csv_fnames):
 
 
 # BEAM Skims
-@orca.table()
+@orca.table(cache=True)
 def beam_drive_skims(
         data_mode, store, s3_input_data_url, local_data_dir, csv_fnames):
     """
@@ -232,7 +232,7 @@ def beam_drive_skims(
     return df
 
 
-@orca.table()
+@orca.table(cache=True)
 def beam_skims(
         data_mode, store, s3_input_data_url, local_data_dir, csv_fnames):
     """

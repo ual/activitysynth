@@ -67,7 +67,7 @@ def impute_missing_skims(skims, beam_skims):
             merged.loc[pd.isnull(merged[colname]), colname] = merged.loc[
                 pd.isnull(merged[colname]), 'dist'] * lookup_val
 
-    orca.add_table('beam_skims', merged)
+    orca.add_table('beam_skims', merged, cache=True)
 
 
 @orca.step()
@@ -107,23 +107,6 @@ def skims_aggregations_other(beam_skims):
                 utils.register_skim_access_variable(
                     col + '_{0}_'.format(impedance) + str(tt),
                     col, impedance, tt, beam_skims)
-
-
-@orca.step()
-def skims_aggregations_transit(beam_transit_skims):
-
-    for impedance in ['gen_tt']:
-
-        # each of these columns must be defined for the
-        # zones table since the skims are reported at
-        # the zone level
-        for col in [
-                'total_jobs', 'sum_persons', 'sum_income',
-                'sum_residential_units']:
-            for tt in [15, 45]:
-                utils.register_skim_access_variable(
-                    col + '_{0}_'.format(impedance) + str(tt),
-                    col, impedance, tt, beam_drive_skims)
 
 
 @orca.step()

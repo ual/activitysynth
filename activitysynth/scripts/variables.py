@@ -19,7 +19,7 @@ def total_jobs(jobs, zones):
         jobs.zone_id_work).count().reindex(zones.index).fillna(0)
 
 
-@orca.column('zones')
+@orca.column('zones', cache=True)
 def sum_residential_units(parcels, buildings, zones):
     s = buildings.residential_units.groupby(
         buildings.parcel_id).sum().groupby(parcels.zone_id).sum()
@@ -55,42 +55,42 @@ def avg_income(households, buildings, parcels, zones):
 ############################
 
 
-# @orca.column('parcels')
-# def node_id_small(parcels, netsmall):
-#     idssmall_parcel = netsmall.get_node_ids(parcels.x, parcels.y)
-#     return idssmall_parcel
+@orca.column('parcels')
+def node_id_small(parcels, netsmall):
+    idssmall_parcel = netsmall.get_node_ids(parcels.x, parcels.y)
+    return idssmall_parcel
 
 
-# @orca.column('rentals')
-# def node_id_small(rentals, netsmall):
-#     idssmall_rentals = netsmall.get_node_ids(
-#         rentals.longitude, rentals.latitude)
-#     return idssmall_rentals
+@orca.column('rentals')
+def node_id_small(rentals, netsmall):
+    idssmall_rentals = netsmall.get_node_ids(
+        rentals.longitude, rentals.latitude)
+    return idssmall_rentals
 
 
-# @orca.column('buildings')
-# def node_id_small(parcels, buildings):
-#     return misc.reindex(parcels.node_id_small, buildings.parcel_id)
+@orca.column('buildings')
+def node_id_small(parcels, buildings):
+    return misc.reindex(parcels.node_id_small, buildings.parcel_id)
 
 
-# @orca.column('units')
-# def node_id_small(buildings, units):
-#     return misc.reindex(buildings.node_id_small, units.building_id)
+@orca.column('units')
+def node_id_small(buildings, units):
+    return misc.reindex(buildings.node_id_small, units.building_id)
 
 
-# @orca.column('households')
-# def node_id_small(units, households):
-#     return misc.reindex(units.node_id_small, households.unit_id)
+@orca.column('households')
+def node_id_small(units, households):
+    return misc.reindex(units.node_id_small, households.unit_id)
 
 
-# @orca.column('persons')
-# def node_id_small(households, persons):
-#     return misc.reindex(households.node_id_small, persons.household_id)
+@orca.column('persons')
+def node_id_small(households, persons):
+    return misc.reindex(households.node_id_small, persons.household_id)
 
 
-# @orca.column('jobs')
-# def node_id_small(buildings, jobs):
-#     return misc.reindex(buildings.node_id_small, jobs.building_id)
+@orca.column('jobs')
+def node_id_small(buildings, jobs):
+    return misc.reindex(buildings.node_id_small, jobs.building_id)
 
 
 ###########################
