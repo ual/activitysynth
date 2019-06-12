@@ -4,15 +4,20 @@ import warnings
 import urbansim_templates
 import argparse
 import s3fs
+from datetime import datetime
 
 from activitysynth.scripts import models, datasources, variables
 
 
 warnings.simplefilter('ignore')
-accessibilities_mode = 'compute'
+
+
+# default runtime args
 year = 2010
 scenario = None
 data_mode = 'csv'
+accessibilities_mode = 'compute'
+
 output_tables = [
     'parcels', 'buildings', 'jobs', 'persons', 'households',
     'establishments', 'rentals', 'units']
@@ -47,7 +52,9 @@ csv_fnames = {
 
 def send_output_to_s3(
         output_tables, io_bucket, beam_bucket, year, scenario=None,
-        output_format='parquet'):
+        output_format='csv'):
+
+    today_str = datetime.now().strftime("%d%B%Y")
 
     # save tables to s3
     if output_format == 'csv':
@@ -59,8 +66,8 @@ def send_output_to_s3(
         df = table.to_frame(table.local_columns)
         if scenario:
             table_name = scenario + '/' + table_name
-        s3_url = 's3://{0}/{1}/{2}.{3}'.format(
-            io_bucket, year, table_name, output_format)
+        s3_url = 's3://{0}/{1}/{2}/{3}.{4}'.format(
+            io_bucket, today_str, year, table_name, output_format)
         if output_format == 'parquet':
             df.to_parquet(s3_url, engine='pyarrow')
         elif output_format == 'csv':
@@ -73,8 +80,8 @@ def send_output_to_s3(
     plans = orca.get_table('plans').to_frame()
     if scenario:
         table_name = scenario + '/' + table_name
-    s3_url = 's3://{0}/{1}/{2}.{3}'.format(
-        beam_bucket, year, table_name, output_format)
+    s3_url = 's3://{0}/{1}/{2}/{3}.{4}'.format(
+        beam_bucket, today_str, year, table_name, output_format)
     if output_format == 'parquet':
         plans.to_parquet(s3_url)
     elif output_format == 'csv':
@@ -92,6 +99,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "--year", "-y", help="what simulation year is it?", action="store")
     parser.add_argument(
+        '--scenario', '-s', action='store', dest='scenario',
+        help='specify which scenario to run')
+    parser.add_argument(
         "--access-vars-mode", "-a", help="option: compute, stored",
         action="store", dest='accessibilities_mode')
 
@@ -102,7 +112,9 @@ if __name__ == "__main__":
     print("The year is {0}.".format(year))
 
     local_data_dir = '/home/data/spring_2019/{0}/'.format(str(year))
-    if scenario:
+
+    if options.scenario:
+        scenario = options.scenario
         local_data_dir += '{0}/'.format(scenario)
 
     if options.data_mode:
