@@ -29,7 +29,8 @@ RUN git clone https://github.com/ual/activitysynth.git \
 
 RUN conda config --add channels udst
 RUN conda config --add channels conda-forge
-RUN conda install --quiet --yes -p $CONDA_DIR/envs/$CONDA_ENV -c udst pandana 
+RUN conda install --quiet --yes -p $CONDA_DIR/envs/$CONDA_ENV -c udst pandana
+RUN $CONDA_DIR/envs/$CONDA_ENV/bin/python -m pip install scipy==1.2 --upgrade
 
 ENV year 2011
 WORKDIR /home/activitysynth/activitysynth

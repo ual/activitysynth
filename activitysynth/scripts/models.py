@@ -70,32 +70,32 @@ def impute_missing_skims(skims, beam_skims):
     orca.add_table('beam_skims', merged, cache=True)
 
 
+# @orca.step()
+# def skims_aggregations_drive(beam_drive_skims):
+
+#     for impedance in ['gen_tt_CAR']:
+
+#         # each of these columns must be defined for the
+#         # zones table since the skims are reported at
+#         # the zone level
+#         for col in [
+#                 'total_jobs', 'sum_persons', 'sum_income',
+#                 'sum_residential_units']:
+#             for tt in [15, 45]:
+#                 utils.register_skim_access_variable(
+#                     col + '_{0}_'.format(impedance) + str(tt),
+#                     col, impedance, tt, beam_drive_skims, np.sum)
+#         for col in ['avg_income']:
+#             for tt in [30]:
+#                 utils.register_skim_access_variable(
+#                     col + '_{0}_'.format(impedance) + str(tt),
+#                     col, impedance, tt, beam_drive_skims, np.mean)
+
+
 @orca.step()
-def skims_aggregations_drive(beam_drive_skims):
+def skims_aggregations(beam_skims):
 
-    for impedance in ['gen_tt_CAR']:
-
-        # each of these columns must be defined for the
-        # zones table since the skims are reported at
-        # the zone level
-        for col in [
-                'total_jobs', 'sum_persons', 'sum_income',
-                'sum_residential_units']:
-            for tt in [15, 45]:
-                utils.register_skim_access_variable(
-                    col + '_{0}_'.format(impedance) + str(tt),
-                    col, impedance, tt, beam_drive_skims, np.sum)
-        for col in ['avg_income']:
-            for tt in [30]:
-                utils.register_skim_access_variable(
-                    col + '_{0}_'.format(impedance) + str(tt),
-                    col, impedance, tt, beam_drive_skims, np.mean)
-
-
-@orca.step()
-def skims_aggregations_other(beam_skims):
-
-    for impedance in ['gen_tt_WALK_TRANSIT', 'gen_tt_RIDE_HAIL']:
+    for impedance in ['gen_tt_WALK_TRANSIT', 'gen_tt_CAR']:
 
         # each of these columns must be defined for the
         # zones table since the skims are reported at
@@ -107,6 +107,12 @@ def skims_aggregations_other(beam_skims):
                 utils.register_skim_access_variable(
                     col + '_{0}_'.format(impedance) + str(tt),
                     col, impedance, tt, beam_skims)
+
+        for col in ['avg_income']:
+            for tt in [30]:
+                utils.register_skim_access_variable(
+                    col + '_{0}_'.format(impedance) + str(tt),
+                    col, impedance, tt, beam_skims, np.mean)
 
 
 @orca.step()
@@ -122,18 +128,22 @@ def initialize_network_small():
 
     @orca.injectable('netsmall', cache=True)
     def build_networksmall(
-            data_mode, store, s3_input_data_url, local_data_dir, csv_fnames):
-        if data_mode == 's3':
-            nodes = pd.read_parquet(s3_input_data_url.format('nodessmall'))
-            edges = pd.read_parquet(s3_input_data_url.format('edgessmall'))
-        elif data_mode == 'h5':
+            input_file_format, input_data_dir, store, input_fnames):
+        if input_file_format == 'parquet':
+            nodes = pd.read_parquet(
+                input_data_dir + input_fnames['drive_nodes'])
+            edges = pd.read_parquet(
+                input_data_dir + input_fnames['drive_edges'])
+        elif input_file_format == 'h5':
             nodes = store['nodessmall']
             edges = store['edgessmall']
-        elif data_mode == 'csv':
+        elif input_file_format == 'csv':
             nodes = pd.read_csv(
-                local_data_dir + csv_fnames['drive_nodes']).set_index('osmid')
+                input_data_dir + input_fnames['drive_nodes']).set_index(
+                'osmid')
             edges = pd.read_csv(
-                local_data_dir + csv_fnames['drive_edges']).set_index('uniqueid')
+                input_data_dir + input_fnames['drive_edges']).set_index(
+                'uniqueid')
         netsmall = pdna.Network(
             nodes.x, nodes.y, edges.u,
             edges.v, edges[['length']],
@@ -151,18 +161,20 @@ def initialize_network_walk():
 
     @orca.injectable('netwalk', cache=True)
     def build_networkwalk(
-            data_mode, store, s3_input_data_url, local_data_dir, csv_fnames):
-        if data_mode == 's3':
-            nodes = pd.read_parquet(s3_input_data_url.format('nodeswalk'))
-            edges = pd.read_parquet(s3_input_data_url.format('edgeswalk'))
-        elif data_mode == 'h5':
+            input_file_format, input_data_dir, store, input_fnames):
+        if input_file_format == 'parquet':
+            nodes = pd.read_parquet(
+                input_data_dir + input_fnames['walk_nodes'])
+            edges = pd.read_parquet(
+                input_data_dir + input_fnames['walk_edges'])
+        elif input_file_format == 'h5':
             nodes = store['nodeswalk']
             edges = store['edgeswalk']
-        elif data_mode == 'csv':
+        elif input_file_format == 'csv':
             nodes = pd.read_csv(
-                local_data_dir + csv_fnames['walk_nodes']).set_index('osmid')
+                input_data_dir + input_fnames['walk_nodes']).set_index('osmid')
             edges = pd.read_csv(
-                local_data_dir + csv_fnames['walk_edges']).set_index(
+                input_data_dir + input_fnames['walk_edges']).set_index(
                 'uniqueid')
         netwalk = pdna.Network(
             nodes.x, nodes.y, edges.u,
@@ -240,29 +252,31 @@ def wlcm_simulate():
 @orca.step()
 def auto_ownership_simulate(households):
     """
-    Generate auto ownership choices for the synthetic pop households. The categories are:
+    Generate auto ownership choices for the synthetic pop households.
+    The categories are:
     - 0: no vehicle
     - 1: one vehicle
     - 2: two vehicles
     - 3: three or more vehicles
     """
-    
-       
     m = mm.get_step('auto_ownership')
-    
+
     # remove filters, specify out tables
-    
     m.filters = None
-    m.tables = ['households','units','buildings','parcels' ,'nodessmall','nodeswalk']
-    m.out_tables = ['households','units','buildings','parcels' ,'nodessmall','nodeswalk']
-    
+    m.tables = [
+        'households', 'units', 'buildings', 'parcels', 'nodessmall',
+        'nodeswalk']
+    m.out_tables = [
+        'households', 'units', 'buildings', 'parcels', 'nodessmall',
+        'nodeswalk']
     m.run()
 
 
 @orca.step()
 def primary_mode_choice_simulate(persons):
     """
-    Generate primary mode choices for the synthetic population. The choices are:
+    Generate primary mode choices for the synthetic population.
+    The choices are:
     - 0: drive alone
     - 1: shared
     - 2: walk-transit-walk
@@ -270,7 +284,8 @@ def primary_mode_choice_simulate(persons):
     - 4: walk-transit-drive
     - 5: bike
     - 6: walk
-    """    
+    """
+
     @orca.table(cache=True)
     def persons_CHTS_format(skims):
     # use persons with jobs for persons
@@ -361,7 +376,6 @@ def TOD_choice_simulate(skims):
     """
     Generate time of day period choices for the synthetic population
     home-work and work-home trips.
-    
     """
     TOD_obs = orca.merge_tables('persons', ['persons', 'households', 'jobs'])
     
