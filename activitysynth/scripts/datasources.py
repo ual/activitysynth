@@ -276,3 +276,5 @@ orca.broadcast(
     'nodessmall', 'rentals', cast_index=True, onto_on='node_id_small')
 orca.broadcast(
     'nodessmall', 'parcels', cast_index=True, onto_on='node_id_small')
+orca.broadcast(
+    'zones', 'parcels', cast_index=True, onto_on='zone_id')

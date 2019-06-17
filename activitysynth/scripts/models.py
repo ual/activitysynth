@@ -236,7 +236,7 @@ def wlcm_simulate(beam_skims):
 
     m = mm.get_step('WLCM_gen_tt')
 
-    m.run(chooser_batch_size=200000, interaction_terms=interaction_terms)
+    m.run(chooser_batch_size=200000, interaction_terms=[interaction_terms])
 
     orca.broadcast(
         'jobs', 'persons', cast_index=True, onto_on='job_id')
