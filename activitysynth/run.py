@@ -192,6 +192,7 @@ if __name__ == "__main__":
     model_steps = [
         'initialize_network_small',
         'initialize_network_walk',
+        'impute_missing_skims'
     ]
 
     orca.run(model_steps)
@@ -200,7 +201,6 @@ if __name__ == "__main__":
         model_steps = [
             'network_aggregations_small',
             'network_aggregations_walk',
-            'impute_missing_skims',
             'skims_aggregations']
         orca.run(model_steps)
 
