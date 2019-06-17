@@ -192,6 +192,7 @@ if __name__ == "__main__":
     model_steps = [
         'initialize_network_small',
         'initialize_network_walk',
+        'impute_missing_skims'
     ]
 
     orca.run(model_steps)
@@ -200,7 +201,6 @@ if __name__ == "__main__":
         model_steps = [
             'network_aggregations_small',
             'network_aggregations_walk',
-            'impute_missing_skims',
             'skims_aggregations']
         orca.run(model_steps)
 
@@ -226,15 +226,15 @@ if __name__ == "__main__":
         orca.add_table('nodessmall', drive_net_vars)
         orca.add_table('zones', zones)
 
-    model_steps = [
-        'wlcm_simulate', 'TOD_choice_simulate',
-        'TOD_distribution_simulate',
-        'auto_ownership_simulate', 'primary_mode_choice_simulate',
-        'generate_activity_plans']
+    # model_steps = [
+    #     'wlcm_simulate', 'TOD_choice_simulate',
+    #     'TOD_distribution_simulate',
+    #     'auto_ownership_simulate', 'primary_mode_choice_simulate',
+    #     'generate_activity_plans']
 
-    orca.run(model_steps)
+    # orca.run(model_steps)
 
-    if write_to_s3:
-        send_output_to_s3(
-            output_tables, io_bucket, beam_bucket, year, scenario,
-            output_file_format)
+    # if write_to_s3:
+    #     send_output_to_s3(
+    #         output_tables, io_bucket, beam_bucket, year, scenario,
+    #         output_file_format)

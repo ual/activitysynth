@@ -67,6 +67,7 @@ def impute_missing_skims(skims, beam_skims):
             merged.loc[pd.isnull(merged[colname]), colname] = merged.loc[
                 pd.isnull(merged[colname]), 'dist'] * lookup_val
 
+    assert len(merged) == 2114116
     orca.add_table('beam_skims', merged, cache=True)
 
 
@@ -222,7 +223,7 @@ def network_aggregations_beam(netbeam):
 
 
 @orca.step()
-def wlcm_simulate():
+def wlcm_simulate(beam_skims):
     """
     Generate workplace location choices for the synthetic pop. This is just
     a temporary workaround until the model templates themselves can handle
@@ -230,20 +231,12 @@ def wlcm_simulate():
     an addtional orca step wrapper such as is defined here.
 
     """
-    interaction_terms_tt = pd.read_csv(
-        './data/WLCM_interaction_terms_tt.csv', index_col=[
-            'zone_id_home', 'zone_id_work'])
-    interaction_terms_dist = pd.read_csv(
-        './data/WLCM_interaction_terms_dist.csv', index_col=[
-            'zone_id_home', 'zone_id_work'])
-    interaction_terms_cost = pd.read_csv(
-        './data/WLCM_interaction_terms_cost.csv', index_col=[
-            'zone_id_home', 'zone_id_work'])
+    interaction_terms = beam_skims.to_frame().rename_axis(
+        ['zone_id_home', 'zone_id_work'])
 
-    m = mm.get_step('WLCM')
+    m = mm.get_step('WLCM_gen_tt')
 
-    m.run(chooser_batch_size=200000, interaction_terms=[
-        interaction_terms_tt, interaction_terms_dist, interaction_terms_cost])
+    m.run(chooser_batch_size=200000, interaction_terms=interaction_terms)
 
     orca.broadcast(
         'jobs', 'persons', cast_index=True, onto_on='job_id')
