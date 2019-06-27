@@ -12,7 +12,6 @@ import numpy as np
 # these are primarily used for calculating skim-based
 # acccessibilities
 
-
 @orca.column('zones', cache=True)
 def total_jobs(jobs, zones):
     return jobs.zone_id_work.groupby(

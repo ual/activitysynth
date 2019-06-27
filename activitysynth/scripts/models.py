@@ -4,6 +4,7 @@ import pandas as pd
 import scipy.stats as st
 import numpy as np
 from datetime import datetime
+import os
 
 from urbansim.utils import networks
 from urbansim_templates import modelmanager as mm
@@ -17,103 +18,50 @@ mm.initialize()
 
 
 @orca.step()
-def impute_missing_skims(skims, beam_skims):
-    df = beam_skims.to_frame()
-    mtc = skims.to_frame(columns=['orig', 'dest', 'da_distance_AM'])
-    mtc.rename(
-        columns={'orig': 'from_zone_id', 'dest': 'to_zone_id'},
-        inplace=True)
-    mtc.set_index(['from_zone_id', 'to_zone_id'], inplace=True)
+def initialize_imputed_skims(mtc_skims):
 
-    # miles to meters
-    mtc['dist'] = mtc['da_distance_AM'] * 1609.34
+    # if imputed skims exist, just load them
+    try:
+        df = orca.get_table('beam_skims_imputed').to_frame()
 
-    # create morning peak lookup
-    df['gen_time_per_m'] = df['gen_tt'] / df['distanceInM']
-    df['gen_cost_per_m'] = df['gen_cost'] / df['distanceInM']
-    df.loc[df['hour'].isin([7, 8, 9]), 'period'] = 'AM'
-    df_am = df[df['period'] == 'AM']
-    df_am = df_am.replace([np.inf, -np.inf], np.nan)
-    am_lookup = df_am[[
-        'mode', 'gen_time_per_m', 'gen_cost_per_m']].dropna().groupby(
-            ['mode']).mean().reset_index()
+    # otherwise, impute the raw skims
+    except FileNotFoundError:
+        print('No imputed skims found. Creating them now.')
 
-    # morning averages
-    df_am_avg = df_am[[
-        'from_zone_id', 'to_zone_id', 'mode', 'gen_tt',
-        'gen_cost']].groupby(
-        ['from_zone_id', 'to_zone_id', 'mode']).mean().reset_index()
+        try:
+            raw_skims = orca.get_table('beam_skims_raw')
+            df = impute_missing_skims(mtc_skims, raw_skims)
+        except FileNotFoundError:
+            print(
+                "Couldn't find raw skims either. Make sure there "
+                "is a file of skims present in the data directory.")
 
-    # long to wide
-    df_am_pivot = df_am_avg.pivot_table(
-        index=['from_zone_id', 'to_zone_id'], columns='mode')
-    df_am_pivot.columns = ['_'.join(col) for col in df_am_pivot.columns.values]
-
-    # combine with mtc-based dists
-    merged = pd.merge(
-        mtc[['dist']], df_am_pivot, left_index=True, right_index=True,
-        how='left')
-
-    # impute
-    for mode in am_lookup['mode'].values:
-        for impedance in ['gen_tt', 'gen_cost']:
-            if impedance == 'gen_tt':
-                lookup_col = 'gen_time_per_m'
-            elif impedance == 'gen_cost':
-                lookup_col = 'gen_cost_per_m'
-            colname = impedance + '_' + mode
-            lookup_val = am_lookup.loc[
-                am_lookup['mode'] == mode, lookup_col].values[0]
-            merged.loc[pd.isnull(merged[colname]), colname] = merged.loc[
-                pd.isnull(merged[colname]), 'dist'] * lookup_val
-
-    assert len(merged) == 2114116
-    orca.add_table('beam_skims', merged, cache=True)
-
-
-# @orca.step()
-# def skims_aggregations_drive(beam_drive_skims):
-
-#     for impedance in ['gen_tt_CAR']:
-
-#         # each of these columns must be defined for the
-#         # zones table since the skims are reported at
-#         # the zone level
-#         for col in [
-#                 'total_jobs', 'sum_persons', 'sum_income',
-#                 'sum_residential_units']:
-#             for tt in [15, 45]:
-#                 utils.register_skim_access_variable(
-#                     col + '_{0}_'.format(impedance) + str(tt),
-#                     col, impedance, tt, beam_drive_skims, np.sum)
-#         for col in ['avg_income']:
-#             for tt in [30]:
-#                 utils.register_skim_access_variable(
-#                     col + '_{0}_'.format(impedance) + str(tt),
-#                     col, impedance, tt, beam_drive_skims, np.mean)
+    orca.add_table('beam_skims_imputed', df, cache=True)
 
 
 @orca.step()
-def skims_aggregations(beam_skims):
+def skims_aggregations(beam_skims_imputed):
 
     for impedance in ['gen_tt_WALK_TRANSIT', 'gen_tt_CAR']:
 
         # each of these columns must be defined for the
         # zones table since the skims are reported at
-        # the zone level
+        # the zone level. currently they get created in
+        # variables.py under the section commented as
+        # "ZONES VARIABLES"
         for col in [
                 'total_jobs', 'sum_persons', 'sum_income',
                 'sum_residential_units']:
             for tt in [15, 45]:
                 utils.register_skim_access_variable(
                     col + '_{0}_'.format(impedance) + str(tt),
-                    col, impedance, tt, beam_skims)
+                    col, impedance, tt, beam_skims_imputed)
 
         for col in ['avg_income']:
             for tt in [30]:
                 utils.register_skim_access_variable(
                     col + '_{0}_'.format(impedance) + str(tt),
-                    col, impedance, tt, beam_skims, np.mean)
+                    col, impedance, tt, beam_skims_imputed, np.mean)
 
 
 @orca.step()
@@ -132,19 +80,19 @@ def initialize_network_small():
             input_file_format, input_data_dir, store, input_fnames):
         if input_file_format == 'parquet':
             nodes = pd.read_parquet(
-                input_data_dir + input_fnames['drive_nodes'])
+                os.path.join(input_data_dir, input_fnames['drive_nodes']))
             edges = pd.read_parquet(
-                input_data_dir + input_fnames['drive_edges'])
+                os.path.join(input_data_dir, input_fnames['drive_edges']))
         elif input_file_format == 'h5':
             nodes = store['nodessmall']
             edges = store['edgessmall']
         elif input_file_format == 'csv':
-            nodes = pd.read_csv(
-                input_data_dir + input_fnames['drive_nodes']).set_index(
-                'osmid')
-            edges = pd.read_csv(
-                input_data_dir + input_fnames['drive_edges']).set_index(
-                'uniqueid')
+            nodes = pd.read_csv(os.path.join(
+                input_data_dir,
+                input_fnames['drive_nodes'])).set_index('osmid')
+            edges = pd.read_csv(os.path.join(
+                input_data_dir,
+                input_fnames['drive_edges'])).set_index('uniqueid')
         netsmall = pdna.Network(
             nodes.x, nodes.y, edges.u,
             edges.v, edges[['length']],
@@ -165,18 +113,19 @@ def initialize_network_walk():
             input_file_format, input_data_dir, store, input_fnames):
         if input_file_format == 'parquet':
             nodes = pd.read_parquet(
-                input_data_dir + input_fnames['walk_nodes'])
+                os.path.join(input_data_dir, input_fnames['walk_nodes']))
             edges = pd.read_parquet(
-                input_data_dir + input_fnames['walk_edges'])
+                os.path.join(input_data_dir, input_fnames['walk_edges']))
         elif input_file_format == 'h5':
             nodes = store['nodeswalk']
             edges = store['edgeswalk']
         elif input_file_format == 'csv':
-            nodes = pd.read_csv(
-                input_data_dir + input_fnames['walk_nodes']).set_index('osmid')
-            edges = pd.read_csv(
-                input_data_dir + input_fnames['walk_edges']).set_index(
-                'uniqueid')
+            nodes = pd.read_csv(os.path.join(
+                input_data_dir,
+                input_fnames['walk_nodes'])).set_index('osmid')
+            edges = pd.read_csv(os.path.join(
+                input_data_dir,
+                input_fnames['walk_edges'])).set_index('uniqueid')
         netwalk = pdna.Network(
             nodes.x, nodes.y, edges.u,
             edges.v, edges[['length']], twoway=True)
@@ -223,7 +172,7 @@ def network_aggregations_beam(netbeam):
 
 
 @orca.step()
-def wlcm_simulate(beam_skims):
+def wlcm_simulate(beam_skims_imputed):
     """
     Generate workplace location choices for the synthetic pop. This is just
     a temporary workaround until the model templates themselves can handle
@@ -231,7 +180,7 @@ def wlcm_simulate(beam_skims):
     an addtional orca step wrapper such as is defined here.
 
     """
-    interaction_terms = beam_skims.to_frame().rename_axis(
+    interaction_terms = beam_skims_imputed.to_frame().rename_axis(
         ['zone_id_home', 'zone_id_work'])
 
     m = mm.get_step('WLCM_gen_tt')
@@ -280,7 +229,7 @@ def primary_mode_choice_simulate(persons):
     """
 
     @orca.table(cache=True)
-    def persons_CHTS_format(skims):
+    def persons_CHTS_format(mtc_skims):
     # use persons with jobs for persons
         persons = orca.get_table('persons').to_frame()
         persons.index.name = 'person_id'
@@ -305,7 +254,7 @@ def primary_mode_choice_simulate(persons):
         persons.TOD = persons.TOD.map({2:'EA',3:'EA',12:'AM',14:'AM',22:'MD',23:'MD',24:'MD'})
 
         # read skim
-        skim = orca.get_table('skims').to_frame()
+        skim = orca.get_table('mtc_skims').to_frame()
         
         skim.columns = skim.columns.str.replace('_distance','_Distance') # capitalization issues
         skim.columns = skim.columns.str.replace('_cost','_Cost')
@@ -365,7 +314,7 @@ def primary_mode_choice_simulate(persons):
 
 
 @orca.step()
-def TOD_choice_simulate(skims):
+def TOD_choice_simulate(mtc_skims):
     """
     Generate time of day period choices for the synthetic population
     home-work and work-home trips.
@@ -375,13 +324,13 @@ def TOD_choice_simulate(skims):
     # TOD_obs.dropna(inplace = True)
     TOD_obs.reset_index(inplace=True)
 
-    skims = orca.get_table('skims').to_frame()
+    mtc_skims = orca.get_table('mtc_skims').to_frame()
     
-    TOD_obs = pd.merge(TOD_obs, skims, how = 'left', 
+    TOD_obs = pd.merge(TOD_obs, mtc_skims, how = 'left', 
                        left_on=['zone_id_home', 'zone_id_work'], 
                        right_on=['orig', 'dest'])
 
-    TOD_obs = pd.merge(TOD_obs, skims, how = 'left',
+    TOD_obs = pd.merge(TOD_obs, mtc_skims, how = 'left',
                        left_on=['zone_id_work','zone_id_home'], 
                        right_on=['orig', 'dest'], suffixes=('_HW', '_WH'))
     

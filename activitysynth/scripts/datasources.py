@@ -1,25 +1,26 @@
 import orca
 import pandas as pd
 import numpy as np
-
+import os
 # data documentation: https://berkeley.app.box.com/notes/282712547032
 
 
 @orca.table('parcels', cache=True)
 def parcels(input_file_format, input_data_dir, store, input_fnames):
     if input_file_format == 'parquet':
-        df = pd.read_parquet(input_data_dir + input_fnames['parcels'])
+        df = pd.read_parquet(
+            os.path.join(input_data_dir, input_fnames['parcels']))
     elif input_file_format == 'h5':
         df = store['parcels']
     elif input_file_format == 'csv':
         try:
             df = pd.read_csv(
-                input_data_dir + input_fnames['parcels'],
+                os.path.join(input_data_dir, input_fnames['parcels']),
                 index_col='parcel_id', dtype={
                     'parcel_id': int, 'block_id': str, 'apn': str})
         except ValueError:
             df = pd.read_csv(
-                input_data_dir + input_fnames['parcels'],
+                os.path.join(input_data_dir, input_fnames['parcels']),
                 index_col='primary_id', dtype={
                     'primary_id': int, 'block_id': str, 'apn': str})
     return df
@@ -28,12 +29,13 @@ def parcels(input_file_format, input_data_dir, store, input_fnames):
 @orca.table('buildings', cache=True)
 def buildings(input_file_format, input_data_dir, store, input_fnames):
     if input_file_format == 'parquet':
-        df = pd.read_parquet(input_data_dir + input_fnames['buildings'])
+        df = pd.read_parquet(
+            os.path.join(input_data_dir, input_fnames['buildings']))
     elif input_file_format == 'h5':
         df = store['buildings']
     elif input_file_format == 'csv':
         df = pd.read_csv(
-            input_data_dir + input_fnames['buildings'],
+            os.path.join(input_data_dir, input_fnames['buildings']),
             index_col='building_id', dtype={
                 'building_id': int, 'parcel_id': int})
     df['res_sqft_per_unit'] = df[
@@ -45,18 +47,19 @@ def buildings(input_file_format, input_data_dir, store, input_fnames):
 @orca.table('jobs', cache=True)
 def jobs(input_file_format, input_data_dir, store, input_fnames):
     if input_file_format == 'parquet':
-        df = pd.read_parquet(input_data_dir + input_fnames['jobs'])
+        df = pd.read_parquet(
+            os.path.join(input_data_dir, input_fnames['jobs']))
     elif input_file_format == 'h5':
         df = store['jobs']
     elif input_file_format == 'csv':
         try:
             df = pd.read_csv(
-                input_data_dir + input_fnames['jobs'], index_col='job_id',
-                dtype={'job_id': int, 'building_id': int})
+                os.path.join(input_data_dir, input_fnames['jobs']),
+                index_col='job_id', dtype={'job_id': int, 'building_id': int})
         except ValueError:
             df = pd.read_csv(
-                input_data_dir + input_fnames['jobs'], index_col=0,
-                dtype={'job_id': int, 'building_id': int})
+                os.path.join(input_data_dir, input_fnames['jobs']),
+                index_col=0, dtype={'job_id': int, 'building_id': int})
             df.index.name = 'job_id'
     return df
 
@@ -64,12 +67,13 @@ def jobs(input_file_format, input_data_dir, store, input_fnames):
 @orca.table('establishments', cache=True)
 def establishments(input_file_format, input_data_dir, store, input_fnames):
     if input_file_format == 'parquet':
-        df = pd.read_parquet(input_data_dir + input_fnames['establishments'])
+        df = pd.read_parquet(
+            os.path.join(input_data_dir, input_fnames['establishments']))
     elif input_file_format == 'h5':
         df = store['establishments']
     elif input_file_format == 'csv':
         df = pd.read_csv(
-            input_data_dir + input_fnames['establishments'],
+            os.path.join(input_data_dir, input_fnames['establishments']),
             index_col='establishment_id', dtype={
                 'establishment_id': int, 'building_id': int,
                 'primary_id': int})
@@ -79,20 +83,21 @@ def establishments(input_file_format, input_data_dir, store, input_fnames):
 @orca.table('households', cache=True)
 def households(input_file_format, input_data_dir, store, input_fnames):
     if input_file_format == 'parquet':
-        df = pd.read_parquet(input_data_dir + input_fnames['households'])
+        df = pd.read_parquet(
+            os.path.join(input_data_dir, input_fnames['households']))
     elif input_file_format == 'h5':
         df = store['households']
     elif input_file_format == 'csv':
         try:
             df = pd.read_csv(
-                input_data_dir + input_fnames['households'],
+                os.path.join(input_data_dir, input_fnames['households']),
                 index_col='household_id', dtype={
                     'household_id': int, 'block_group_id': str, 'state': str,
                     'county': str, 'tract': str, 'block_group': str,
                     'building_id': int, 'unit_id': int, 'persons': float})
         except ValueError:
             df = pd.read_csv(
-                input_data_dir + input_fnames['households'],
+                os.path.join(input_data_dir, input_fnames['households']),
                 index_col=0, dtype={
                     'household_id': int, 'block_group_id': str, 'state': str,
                     'county': str, 'tract': str, 'block_group': str,
@@ -104,19 +109,20 @@ def households(input_file_format, input_data_dir, store, input_fnames):
 @orca.table('persons', cache=True)
 def persons(input_file_format, input_data_dir, store, input_fnames):
     if input_file_format == 'parquet':
-        df = pd.read_parquet(input_data_dir + input_fnames['persons'])
+        df = pd.read_parquet(
+            os.path.join(input_data_dir, input_fnames['persons']))
     elif input_file_format == 'h5':
         df = store['persons']
     elif input_file_format == 'csv':
         try:
             df = pd.read_csv(
-                input_data_dir + input_fnames['persons'],
+                os.path.join(input_data_dir, input_fnames['persons']),
                 index_col='person_id', dtype={
                     'person_id': int, 'household_id': int})
         except ValueError:
             df = pd.read_csv(
-                input_data_dir + input_fnames['persons'], index_col=0,
-                dtype={'person_id': int, 'household_id': int})
+                os.path.join(input_data_dir, input_fnames['persons']),
+                index_col=0, dtype={'person_id': int, 'household_id': int})
             df.index.name = 'person_id'
     return df
 
@@ -124,13 +130,14 @@ def persons(input_file_format, input_data_dir, store, input_fnames):
 @orca.table('rentals', cache=True)
 def rentals(input_file_format, input_data_dir, store, input_fnames):
     if input_file_format == 'parquet':
-        df = pd.read_parquet(input_data_dir + input_fnames['rentals'])
+        df = pd.read_parquet(
+            os.path.join(input_data_dir, input_fnames['rentals']))
     elif input_file_format == 'h5':
         df = store['craigslist']
     elif input_file_format == 'csv':
         try:
             df = pd.read_csv(
-                input_data_dir + input_fnames['rentals'],
+                os.path.join(input_data_dir, input_fnames['rentals']),
                 index_col='pid', dtype={
                     'pid': int, 'date': str, 'region': str,
                     'neighborhood': str, 'rent': float, 'sqft': float,
@@ -139,7 +146,7 @@ def rentals(input_file_format, input_data_dir, store, input_fnames):
                     'state': str, 'bathrooms': str})
         except ValueError:
             df = pd.read_csv(
-                input_data_dir + input_fnames['rentals'],
+                os.path.join(input_data_dir, input_fnames['rentals']),
                 index_col=0, dtype={
                     'date': str, 'region': str,
                     'neighborhood': str, 'rent': float, 'sqft': float,
@@ -157,13 +164,14 @@ def rentals(input_file_format, input_data_dir, store, input_fnames):
 @orca.table('units', cache=True)
 def units(input_file_format, input_data_dir, store, input_fnames):
     if input_file_format == 'parquet':
-        df = pd.read_parquet(input_data_dir + input_fnames['units'])
+        df = pd.read_parquet(
+            os.path.join(input_data_dir, input_fnames['units']))
     elif input_file_format == 'h5':
         df = store['units']
     elif input_file_format == 'csv':
         df = pd.read_csv(
-            input_data_dir + input_fnames['units'], index_col='unit_id',
-            dtype={'unit_id': int, 'building_id': int})
+            os.path.join(input_data_dir, input_fnames['units']),
+            index_col='unit_id', dtype={'unit_id': int, 'building_id': int})
     df.index.name = 'unit_id'
     return df
 
@@ -171,13 +179,14 @@ def units(input_file_format, input_data_dir, store, input_fnames):
 @orca.table('zones', cache=True)
 def zones(input_file_format, input_data_dir, store, input_fnames):
     if input_file_format == 'parquet':
-        df = pd.read_parquet(input_data_dir + input_fnames['zones'])
+        df = pd.read_parquet(
+            os.path.join(input_data_dir, input_fnames['zones']))
     elif input_file_format == 'h5':
         df = store['zones']
     elif input_file_format == 'csv':
         df = pd.read_csv(
-            input_data_dir + input_fnames['zones'], index_col='zone_id',
-            dtype={'zone_id': int})
+            os.path.join(input_data_dir, input_fnames['zones']),
+            index_col='zone_id', dtype={'zone_id': int})
         if 'tract' in df.columns:
             df.drop('tract', axis=1, inplace=True)
     return df
@@ -197,61 +206,54 @@ def access_indicators_ampeak():
 
 
 # Tables from Emma
-@orca.table('skims', cache=True)
-def skims(input_file_format, input_data_dir, store, input_fnames):
+@orca.table('mtc_skims', cache=True)
+def mtc_skims(input_file_format, input_data_dir, store, input_fnames):
     if input_file_format == 'parquet':
-        df = pd.read_parquet(input_data_dir + input_fnames['skims'])
+        df = pd.read_parquet(
+            os.path.join(input_data_dir, input_fnames['mtc_skims']))
     elif input_file_format == 'h5':
-        df = store['skims']
+        df = store['mtc_skims']
     elif input_file_format == 'csv':
-        df = pd.read_csv(input_data_dir + input_fnames['skims'], index_col=0)
+        df = pd.read_csv(
+            os.path.join(input_data_dir, input_fnames['mtc_skims']),
+            index_col=0)
     return df
 
 
-# BEAM Skims
-# @orca.table(cache=True)
-# def beam_drive_skims(input_file_format, input_data_dir, store, input_fnames):
-#     """
-#     Load BEAM drive skims, convert travel time to minutes
-#     """
-#     if input_file_format == 'parquet':
-#         df = pd.read_parquet(input_data_dir + input_fnames['beam_drive_skims'])
-#     elif input_file_format == 'h5':
-#         df = store['beam_drive_skims']
-#     elif input_file_format == 'csv':
-#         df = pd.read_csv(input_data_dir + input_fnames['beam_drive_skims'])
-
-#     # morning peak
-#     df = df[df['period'] == 'AM']
-#     assert len(df) == 2114116
-#     df = df.rename(
-#         columns={'origTaz': 'from_zone_id', 'destTaz': 'to_zone_id'})
-#     df = df.set_index(['from_zone_id', 'to_zone_id'])
-
-#     # seconds to minutes
-#     df['gen_tt_CAR'] = df['generalizedTimeInS'] / 60
-#     return df
-
-
 @orca.table(cache=True)
-def beam_skims(input_file_format, input_data_dir, store, input_fnames):
+def beam_skims_raw(input_file_format, input_data_dir, store, input_fnames):
     """
     Load full BEAM skims, convert travel time to minutes
     """
     if input_file_format == 'parquet':
-        df = pd.read_parquet(input_data_dir + input_fnames['beam_skims'])
+        df = pd.read_parquet(
+            os.path.join(input_data_dir, input_fnames['beam_skims_raw']))
     elif input_file_format == 'h5':
-        df = store['beam_skims']
+        df = store['beam_skims_raw']
     elif input_file_format == 'csv':
-        df = pd.read_csv(input_data_dir + input_fnames['beam_skims'])
+        df = pd.read_csv(
+            os.path.join(input_data_dir, input_fnames['beam_skims_raw']))
 
     df.rename(columns={
         'generalizedCost': 'gen_cost', 'origTaz': 'from_zone_id',
         'destTaz': 'to_zone_id'}, inplace=True)
+    return df
 
-    # seconds to minutes
-    df['gen_tt'] = df['generalizedTimeInS'] / 60
 
+@orca.table(cache=True)
+def beam_skims_imputed(input_file_format, input_data_dir, store, input_fnames):
+    """
+    Load imputed BEAM skims
+    """
+    if input_file_format == 'parquet':
+        df = pd.read_parquet(
+            os.path.join(input_data_dir, input_fnames['beam_skims_imputed']))
+    elif input_file_format == 'h5':
+        df = store['beam_skims_imputed']
+    elif input_file_format == 'csv':
+        df = pd.read_csv(
+            os.path.join(input_data_dir, input_fnames['beam_skims_imputed']))
+    df.set_index(['from_zone_id', 'to_zone_id'], inplace=True)
     return df
 
 
