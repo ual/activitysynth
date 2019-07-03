@@ -45,7 +45,8 @@ formattable_fname_dict = {
 output_tables = [
     'parcels', 'buildings', 'jobs', 'persons', 'households',
     'establishments', 'rentals', 'units', 'zones', 'beam_skims_imputed',
-    'mtc_skims', 'plans']
+    'mtc_skims', 'plans', 'walk_edges', 'walk_nodes', 'drive_edges',
+    'drive_nodes']
 
 # default input data dir
 input_data_dir = './data/'
