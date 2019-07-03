@@ -257,6 +257,62 @@ def beam_skims_imputed(input_file_format, input_data_dir, store, input_fnames):
     return df
 
 
+@orca.table(cache=True)
+def drive_nodes(input_file_format, input_data_dir, store, input_fnames):
+    if input_file_format == 'parquet':
+        nodes = pd.read_parquet(
+            os.path.join(input_data_dir, input_fnames['drive_nodes']))
+    elif input_file_format == 'h5':
+        nodes = store['drive_nodes']
+    elif input_file_format == 'csv':
+        nodes = pd.read_csv(os.path.join(
+            input_data_dir,
+            input_fnames['drive_nodes'])).set_index('osmid')
+    return nodes
+
+
+@orca.table(cache=True)
+def drive_edges(input_file_format, input_data_dir, store, input_fnames):
+    if input_file_format == 'parquet':
+        edges = pd.read_parquet(
+            os.path.join(input_data_dir, input_fnames['drive_edges']))
+    elif input_file_format == 'h5':
+        edges = store['drive_edges']
+    elif input_file_format == 'csv':
+        edges = pd.read_csv(os.path.join(
+            input_data_dir,
+            input_fnames['drive_edges'])).set_index('uniqueid')
+    return edges
+
+
+@orca.table(cache=True)
+def walk_nodes(input_file_format, input_data_dir, store, input_fnames):
+    if input_file_format == 'parquet':
+        nodes = pd.read_parquet(
+            os.path.join(input_data_dir, input_fnames['walk_nodes']))
+    elif input_file_format == 'h5':
+        nodes = store['walk_nodes']
+    elif input_file_format == 'csv':
+        nodes = pd.read_csv(os.path.join(
+            input_data_dir,
+            input_fnames['walk_nodes'])).set_index('osmid')
+    return nodes
+
+
+@orca.table(cache=True)
+def walk_edges(input_file_format, input_data_dir, store, input_fnames):
+    if input_file_format == 'parquet':
+        edges = pd.read_parquet(
+            os.path.join(input_data_dir, input_fnames['walk_edges']))
+    elif input_file_format == 'h5':
+        edges = store['walk_edges']
+    elif input_file_format == 'csv':
+        edges = pd.read_csv(os.path.join(
+            input_data_dir,
+            input_fnames['walk_edges'])).set_index('uniqueid')
+    return edges
+
+
 # Broadcasts, a.k.a. merge relationships
 orca.broadcast(
     'parcels', 'buildings', cast_index=True, onto_on='parcel_id')
