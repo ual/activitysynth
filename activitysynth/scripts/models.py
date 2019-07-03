@@ -74,7 +74,6 @@ def initialize_network_small():
     """
     This will be turned into a data loading template.
     """
-
     @orca.injectable('netsmall', cache=True)
     def build_networksmall(drive_nodes, drive_edges):
         netsmall = pdna.Network(
@@ -91,12 +90,11 @@ def initialize_network_walk():
     This will be turned into a data loading template.
 
     """
-
     @orca.injectable('netwalk', cache=True)
     def build_networkwalk(walk_nodes, walk_edges):
         netwalk = pdna.Network(
-            nodes.x, nodes.y, edges.u,
-            edges.v, edges[['length']], twoway=True)
+            walk_nodes.x, walk_nodes.y, walk_edges.u,
+            walk_edges.v, walk_edges[['length']], twoway=True)
         netwalk.precompute(2500)
         return netwalk
 
