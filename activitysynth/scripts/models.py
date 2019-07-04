@@ -77,6 +77,8 @@ def initialize_network_small():
     """
     @orca.injectable('netsmall', cache=True)
     def build_networksmall(drive_nodes, drive_edges):
+        drive_nodes = drive_nodes.to_frame()
+        drive_edges = drive_edges.to_frame()
         netsmall = pdna.Network(
             drive_nodes.x, drive_nodes.y, drive_edges.u,
             drive_edges.v, drive_edges[['length']],
@@ -93,6 +95,8 @@ def initialize_network_walk():
     """
     @orca.injectable('netwalk', cache=True)
     def build_networkwalk(walk_nodes, walk_edges):
+        walk_nodes = walk_nodes.to_frame()
+        walk_edges = walk_edges.to_frame()
         netwalk = pdna.Network(
             walk_nodes.x, walk_nodes.y, walk_edges.u,
             walk_edges.v, walk_edges[['length']], twoway=True)
@@ -322,7 +326,7 @@ def TOD_choice_simulate(mtc_skims):
     persons = orca.get_table('persons').to_frame()
 
     #####UPDATE COLUMN#######
-    update_column('persons', 'TOD', results[['TOD']])
+    update_column('persons', 'TOD', results['TOD'])
     # persons = pd.merge(
     #     persons, results[['TOD']], how='left',
     #     left_index=True, right_index=True)
@@ -513,10 +517,9 @@ def TOD_distribution_simulate():
     TOD_obs2 = pd.concat(frames)
 
     TOD_obs2 = TOD_obs2[cols]
-    
 
     for col in ['HW_ST', 'WH_ST']:
-        update_column(persons, col, TOD_obs2[[col]])
+        update_column(persons, col, TOD_obs2[col])
     # persons = pd.merge(
     #     persons, TOD_obs2[['HW_ST', 'WH_ST']], how='left',
     #     left_index=True, right_index=True)
