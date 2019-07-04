@@ -9,6 +9,7 @@ import os
 from urbansim.utils import networks
 from urbansim_templates import modelmanager as mm
 from urbansim_templates.models import LargeMultinomialLogitStep
+from urbansim_templates.utils import update_column
 
 from activitysynth.scripts import utils
 
@@ -319,10 +320,13 @@ def TOD_choice_simulate(mtc_skims):
 
     results = orca.get_table('tripsA').to_frame().set_index('person_id')
     persons = orca.get_table('persons').to_frame()
-    persons = pd.merge(
-        persons, results[['TOD']], how='left',
-        left_index=True, right_index=True)
-    orca.add_table('persons', persons)
+
+    #####UPDATE COLUMN#######
+    update_column('persons', 'TOD', results[['TOD']])
+    # persons = pd.merge(
+    #     persons, results[['TOD']], how='left',
+    #     left_index=True, right_index=True)
+    # orca.add_table('persons', persons)
 
     
 @orca.step()
@@ -510,10 +514,13 @@ def TOD_distribution_simulate():
 
     TOD_obs2 = TOD_obs2[cols]
     
-    persons = pd.merge(
-        persons, TOD_obs2[['HW_ST', 'WH_ST']], how='left',
-        left_index=True, right_index=True)
-    orca.add_table('persons', persons)
+
+    for col in ['HW_ST', 'WH_ST']:
+        update_column(persons, col, TOD_obs2[[col]])
+    # persons = pd.merge(
+    #     persons, TOD_obs2[['HW_ST', 'WH_ST']], how='left',
+    #     left_index=True, right_index=True)
+    # orca.add_table('persons', persons)
 
 
 @orca.step()
