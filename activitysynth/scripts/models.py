@@ -519,7 +519,7 @@ def TOD_distribution_simulate():
     TOD_obs2 = TOD_obs2[cols]
 
     for col in ['HW_ST', 'WH_ST']:
-        update_column(persons, col, TOD_obs2[col])
+        update_column('persons', col, TOD_obs2[col])
     # persons = pd.merge(
     #     persons, TOD_obs2[['HW_ST', 'WH_ST']], how='left',
     #     left_index=True, right_index=True)
