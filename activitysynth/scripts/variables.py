@@ -606,3 +606,78 @@ def info(jobs):
 @orca.column('jobs')
 def scitech(jobs):
     return jobs['sector_id'].isin([54]).astype(int)
+
+###########################
+#  Schools variables      #
+###########################
+@orca.column('schools')
+def rank(schools):
+    return schools['sw_rank_2108'].fillna(6.5)
+
+@orca.column('schools')
+def rank_1_4(schools):
+    return schools['rank'].apply(lambda x: 1 if x<=4 else 0)
+
+@orca.column('schools')
+def rank_5_7(schools):
+    return schools['rank'].apply(lambda x: 1 if (x>4) & (x<=7) else 0)
+
+@orca.column('schools')
+def rank_8_9(schools):
+    return schools['rank'].apply(lambda x: 1 if x>7 else 0)
+
+###########################
+#  Schools simulation Var #
+###########################
+# @orca.column('long_format', column_name= 'home_city')
+# def home_city(long_format):
+#     return 'san francisco'
+
+@orca.column('long_format', column_name= 'np.log1p(gen_tt_CAR)')
+def col_1(long_format):
+    return np.log1p(long_format['gen_tt_CAR'])
+             
+@orca.column('long_format', column_name= 'np.log1p(dist)')
+def col_2(long_format):
+    return np.log1p(long_format.dist/1000)
+             
+@orca.column('long_format', column_name= 'same_city?')
+def col_3(long_format):
+    return 1*(long_format['home_city'] == long_format['City'])
+
+@orca.column('long_format', column_name= 'np.log1p(dist):np.log1p(gen_tt_CAR)')
+def col_4(long_format):
+    return long_format['np.log1p(dist)'] * long_format["np.log1p(gen_tt_CAR)"]  
+             
+@orca.column('long_format', column_name= 'rank:hh_inc_under_25k')
+def col_5(long_format):
+    return long_format['rank'] * long_format['hh_inc_under_25k']              
+
+@orca.column('long_format', column_name= 'rank:hh_inc_25_to_75k')
+def col_6(long_format):
+    return long_format['rank'] * long_format['hh_inc_25_to_75k'] 
+
+@orca.column('long_format', column_name= 'rank:hh_inc_75_to_200k')
+def col_7(long_format):
+    return long_format['rank'] * long_format['hh_inc_75_to_200k'] 
+
+@orca.column('long_format', column_name= 'np.log1p(dist):sameCity')
+def col_8(long_format):
+    return long_format['np.log1p(dist)'] * long_format['same_city?']
+
+@orca.column('long_format', column_name= 'np.log1p(dist):rank_1_4')
+def col_9(long_format):
+    return long_format['np.log1p(dist)'] * long_format['rank_1_4']
+
+@orca.column('long_format', column_name= 'np.log1p(dist):rank_5_7')
+def col_10(long_format):
+    return long_format['np.log1p(dist)'] * long_format['rank_5_7']
+
+@orca.column('long_format', column_name= 'np.log1p(dist):rank_8_9')
+def col_11(long_format):
+    return long_format['np.log1p(dist)'] * long_format['rank_8_9']
+
+
+
+
+

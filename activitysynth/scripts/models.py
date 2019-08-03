@@ -5,6 +5,7 @@ import scipy.stats as st
 import numpy as np
 from datetime import datetime
 import os
+import pickle
 
 from urbansim.utils import networks
 from urbansim_templates import modelmanager as mm
@@ -31,13 +32,12 @@ def initialize_imputed_skims(mtc_skims):
 
         try:
             raw_skims = orca.get_table('beam_skims_raw')
-            df = impute_missing_skims(mtc_skims, raw_skims)
+            df = utils.impute_missing_skims(mtc_skims, raw_skims)
         except FileNotFoundError:
-            print(
-                "Couldn't find raw skims either. Make sure there "
+            print("Couldn't find raw skims either. Make sure there "/
                 "is a file of skims present in the data directory.")
 
-    orca.add_table('beam_skims_imputed', df, cache=True)
+        orca.add_table('beam_skims_imputed', df, cache=True)
 
 
 @orca.step()
@@ -600,3 +600,15 @@ def generate_activity_plans():
     plans['x']
     # plans.loc[plans['planElement'] == 'activity', 'mode'] = ''
     orca.add_table('plans', plans, cache=True)
+    
+@orca.step()
+def SLCM_simulate(long_format):
+    """
+    Generate school location choices for the synthetic pop households.
+    
+    """
+    file_Name = "/home/juan/activitysynth/activitysynth/configs/SLCM_gen_tt.pkl"
+    fileObject = open(file_Name,'rb')  
+    SLCM = pickle.load(fileObject) 
+    df['probabilities'] = SLCM.predict(df)
+    SL = df.sort_values("probabilities", ascending=False).groupby('obs_id').agg({'school_choice_set': 'first'})

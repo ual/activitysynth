@@ -197,8 +197,7 @@ def zones(input_file_format, input_data_dir, store, input_fnames):
 @orca.table('access_indicators_ampeak', cache=True)
 def access_indicators_ampeak():
     # this filepath is hardcoded because it lives in the repo
-    am_acc = pd.read_csv(
-        './data/access_indicators_ampeak.csv', dtype={'block_id': str})
+    am_acc = pd.read_csv('/home/data/urbanaccess_transit/access_indicators_ampeak.csv', dtype={'block_id': str})
     am_acc.block_id = am_acc.block_id.str.zfill(15)
     am_acc.set_index('block_id', inplace=True)
     am_acc = am_acc.fillna(am_acc.median())
@@ -312,6 +311,116 @@ def walk_edges(input_file_format, input_data_dir, store, input_fnames):
             input_fnames['walk_edges'])).set_index('uniqueid')
     return edges
 
+#Tables Juan
+@orca.table(cache = True)
+def schools():
+    #Hardcoded 
+    list_1 = [1459, 1685, 1746, 1749, 1750, 2006, 2063, 2327, 2662, 2679, 3378, 3379, 3381, 3432, 3454]
+    df = pd.read_csv('/home/juan/ual_model_workspace/spring-2019-models/notebooks-juan/schools_v1.csv', index_col = 'school_id')
+    df = df[~df.index.isin(list_1)]
+    return df 
+
+
+@orca.table(cache = True) 
+def public_schools_50(netsmall, schools):
+    #50 closest public schools for each node id
+    s = schools.to_frame()
+    netsmall.set_pois('public_school', 500000, 10000, 
+                  s[s.type == 'public'].Longitude, 
+                  s[s.type == 'public'].Latitude, )
+    
+    df = netsmall.nearest_pois(200000,
+                               'public_school',
+                               num_pois=50,
+                               include_poi_ids=True)
+    return df
+   
+@orca.table(cache = True) 
+def private_schools_100(netsmall, schools):
+    #100 closest private schools for each node id
+    s = schools.to_frame()
+    netsmall.set_pois('private_school', 500000, 10000, 
+                  s[s.type == 'private'].Longitude, 
+                  s[s.type == 'private'].Latitude, )
+    
+    df = netsmall.nearest_pois(200000,
+                               'private_school',
+                               num_pois=100,
+                               include_poi_ids=True)
+    return df
+
+@orca.table(cache = True)
+def students(persons, households):
+    df = orca.merge_tables(target='persons', 
+                           tables=[persons, households], 
+                           columns = ['income','member_id', 'age', 
+                                      'household_id','node_id_small', 
+                                      'student','zone_id_home'])
+    
+    df['hh_inc_under_25k'] = ((df.income > 10) & (df.income <= 25000)).astype(int)
+    df['hh_inc_25_to_75k'] = ((df.income > 25000) & (df.income <= 75000)).astype(int)
+    df['hh_inc_75_to_200k'] = ((df.income > 75000) & (df.income <= 200000)).astype(int)
+    
+    df = df[(df.age> 4) & (df.age <=18) & (df.student == 1)]
+    df.dropna(subset=['node_id_small'], inplace = True)
+    
+    #This needs to change when I merge persons and households. 
+    df['home_city'] = 'San Francisco'
+    return df
+
+
+@orca.table(cache=True)
+def closest_schools(students, public_schools_50, private_schools_100, schools):
+    #Converting orca tables to dataframes. 
+    st = students.to_frame()
+    sc = schools.to_frame()
+    pu_50 = public_schools_50.to_frame()
+    pr_100 = private_schools_100.to_frame()
+    
+    #Creating long format table for school choice (1 row per each school-student pair)
+    df = st.merge(pu_50.iloc[:,50:], 
+                  how = 'left', 
+                  left_on = 'node_id_small', 
+                  right_index = True).merge(pr_100.iloc[:,100:],
+                                            how = 'left', 
+                                            left_on = 'node_id_small',
+                                            right_index = True)
+    df = df.loc[:,df.columns.str.startswith("poi")].unstack()
+    df = df.reset_index().sort_values(by = 'person_id').rename(columns = {0: 'school_choice_set', 'person_id': 'obs_id'})
+   
+    # School availability matrix 
+    sa_matrix = df.merge(sc.loc[:,sc.columns.str.startswith("grade_")], 
+                         how = 'left', left_on = 'school_choice_set', right_index=True)
+    sa_matrix = np.array(sa_matrix.loc[:,sa_matrix.columns.str.startswith("grade_")])
+
+    # Age matrix 
+    age = st.age.replace(18, 17)   
+    age_matrix = np.array(pd.get_dummies(age))
+    index = pd.Series(np.nonzero(age_matrix)[1] - 1).replace(-1,0)
+    age_matrix[np.arange(0,len(index)),index] = 1
+
+    # Creating age filter 
+    col = (sa_matrix.reshape(1109985,1,150,13) * age_matrix.reshape(1109985, 1, 1,13)).sum(-1)
+    filter_1 = pd.Series(col.flatten()).replace(2,1).astype(bool)
+    
+    return df[filter_1]
+
+@orca.table(cache = True)
+def long_format(closest_schools, students, schools,beam_skims_imputed ):
+    cols = ['obs_id', 'zone_id_home', 'hh_inc_under_25k', 
+            'hh_inc_25_to_75k', 'hh_inc_75_to_200k','school_choice_set', 
+            'school_zone_id', 'rank', 'rank_1_4', 'rank_5_7',
+            'rank_8_9', 'City', 'home_city']
+    
+    df = orca.merge_tables(target='closest_schools', tables=['students', 'schools', 'closest_schools'], columns = cols)
+    
+    beam_skims = orca.get_table('beam_skims_imputed').to_frame(columns = ['dist', 'gen_tt_CAR']).reset_index()
+    
+    df_1 = df.merge(beam_skims, how = 'left', 
+             left_on = ['zone_id_home','school_zone_id'], 
+             right_on = ['from_zone_id', 'to_zone_id'])
+    
+    return df_1 
 
 # Broadcasts, a.k.a. merge relationships
 orca.broadcast(
@@ -336,3 +445,6 @@ orca.broadcast(
     'nodessmall', 'parcels', cast_index=True, onto_on='node_id_small')
 orca.broadcast(
     'zones', 'parcels', cast_index=True, onto_on='zone_id')
+
+orca.broadcast(cast='students', onto='closest_schools', cast_index = True, onto_on='obs_id')
+orca.broadcast(cast='schools', onto='closest_schools', cast_index = True, onto_on='school_choice_set')

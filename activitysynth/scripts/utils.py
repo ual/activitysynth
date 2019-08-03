@@ -106,3 +106,35 @@ def impute_missing_skims(mtc_skims, beam_skims_raw):
     assert len(merged) == 2114116
 
     return merged
+
+
+@orca.injectable( cache=True)
+def age_filter(SL_long_format, schools, students):
+    
+    #Converting orca tables to dataframes
+    df = SL_long_format.to_frame()
+    sc = schools.to_frame()    
+    st = students.to_frame()    
+    
+    # School availability matrix 
+    sa_matrix = df.merge(sc.loc[:,sc.columns.str.startswith("grade_")], 
+                         how = 'left', left_on = 'school_id', right_index=True)
+    
+    sa_matrix = np.array(sa_matrix.loc[:,sa_matrix.columns.str.startswith("grade_")])
+
+    # Age matrix 
+    age = st.age.replace(18, 17)   
+    
+    df = np.array(pd.get_dummies(age))
+    index = pd.Series(np.nonzero(df)[1] - 1).replace(-1,0)
+    df[np.arange(0,len(index)),index] = 1
+    
+    
+#     sa_matrix = orca.get_injectable('sa_matrix')
+#     age_matrix = orca.get_injectable('age_matrix')
+    
+    col = (sa_matrix.reshape(1109985,1,150,13) * df.reshape(1109985, 1, 1,13)).sum(-1)
+    filter_1 = pd.Series(col.flatten()).replace(2,1).astype(bool)
+    return filter_1
+
+

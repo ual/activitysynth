@@ -16,7 +16,7 @@ warnings.simplefilter('ignore')
 # default runtime args
 scenario = None
 accessibilities_mode = 'compute'
-data_out = './output/model_data_output.h5'
+data_out = '/home/data/spring_2019/base/'
 output_store = False
 input_file_format = 'csv'
 formattable_fname_dict = {
@@ -29,7 +29,7 @@ formattable_fname_dict = {
     'rentals': 'craigslist.{0}',
     'units': 'units.{0}',
     'mtc_skims': 'mtc_skims.{0}',
-    'beam_skims_raw': 'beam_skims_raw.{0}',
+    'beam_skims_raw': '30.skims-smart-23April2019-baseline.csv.gz',
     'beam_skims_imputed': 'beam_skims_imputed.{0}',
     # the following nodes and edges .csv's will be phased out and
     # replaced by travel model skims entirely
