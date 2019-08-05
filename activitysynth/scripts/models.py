@@ -602,13 +602,23 @@ def generate_activity_plans():
     orca.add_table('plans', plans, cache=True)
     
 @orca.step()
-def SLCM_simulate(long_format):
+def SLCM_simulate(persons):
     """
     Generate school location choices for the synthetic pop households.
     
     """
+    #Running the simulation 
     file_Name = "/home/juan/activitysynth/activitysynth/configs/SLCM_gen_tt.pkl"
     fileObject = open(file_Name,'rb')  
     SLCM = pickle.load(fileObject) 
-    df['probabilities'] = SLCM.predict(df)
-    SL = df.sort_values("probabilities", ascending=False).groupby('obs_id').agg({'school_choice_set': 'first'})
+    orca.add_column('long_format', 'probabilities', SLCM.predict(orca.get_table('long_format').to_frame()))
+    df = orca.get_table('long_format').to_frame()
+    school_choice = df.sort_values("probabilities", ascending=False).groupby('obs_id').agg({'school_choice_set': 'first'})
+    
+    #Merging schools in the persons table 
+    persons_with_school = persons.to_frame().merge(school_choice, 
+                                                   how = 'left', 
+                                                   left_index = True, 
+                                                   right_index = True).rename(columns={'school_choice_set': 'school_id'})
+    
+    orca.add_table('persons', persons_with_school)
