@@ -6,6 +6,8 @@ import numpy as np
 from datetime import datetime
 import os
 import pickle
+import pylogit as pl  
+import random
 
 from urbansim.utils import networks
 from urbansim_templates import modelmanager as mm
@@ -622,3 +624,108 @@ def SLCM_simulate(persons):
                                                    right_index = True).rename(columns={'school_choice_set': 'school_id'})
     
     orca.add_table('persons', persons_with_school)
+
+@orca.step()
+def TOD_school_arrival_simulate(persons):
+    """
+    Generate school arrival time of the day category.
+    Category 1: 3:00 am - 7:45 am
+    Category 2: 7:45 am - 8:30 am
+    Category 3: 8:30 am - 9:30 am
+    Category 4: 9:30 am - 3:00 pm
+    Category 5: 3:00 pm - 3:00 am
+ 
+    Note: Prediction is done using pylogit library directly. Data preparation is intended to transform from 
+    wide format to long format. 
+    """
+    #Running the simulation
+    file_Name = "/home/juan/activitysynth/activitysynth/configs/TOD_school_arrival.pkl"
+    fileObject = open(file_Name,'rb')  
+    TOD_arrival = pickle.load(fileObject)
+    data = orca.get_table('TOD_school_data_preparation').to_frame()
+    data['probabilities']= TOD_arrival.predict(data)
+    TOD_choice = data.sort_values("probabilities", ascending=False).groupby('person_id').agg({'alt_id': 'first'})
+
+    #Adding column to persons table
+    persons.update_col('TOD_school_arrival', TOD_choice)
+    
+@orca.step()
+def TOD_school_departure_simulate(persons):
+    """
+    Generate school departure time of the day category.
+    Category 1: 10:00 am - 12:00pm
+    Category 2: 12:00 pm - 3:00pm
+    Category 3: 3:00 pm - 5:00 pm
+    Category 4: 5:00 pm - 8:00 pm
+    Category 5: 8:00 pm - 10:00 am
+    
+    Note: Prediction is done using pylogit library directly. Data preparation is intended to transform from 
+    wide format to long format. 
+    """
+    #Running the simulation
+    file_Name = "/home/juan/activitysynth/activitysynth/configs/TOD_school_departure.pkl"
+    fileObject = open(file_Name,'rb')  
+    TOD_departure = pickle.load(fileObject)
+    data = orca.get_table('TOD_school_data_preparation').to_frame()
+    data['probabilities']= TOD_departure.predict(data)
+    TOD_choice = data.sort_values("probabilities", ascending=False).groupby('person_id').agg({'alt_id': 'first'})
+
+    #Adding column to persons table
+    persons.update_col('TOD_school_departure', TOD_choice)
+    
+@orca.step()
+def TOD_school_distribution_simulate(persons):
+    """
+    Generate specific time of day choices for the synthetic population
+    > home-shool-home trips
+    
+    """
+    #Running the simulation
+    file_Name = "/home/juan/activitysynth/activitysynth/configs/TOD_school_distributions.pkl"
+    fileObject = open(file_Name,'rb')  
+    TOD_distributions = pickle.load(fileObject)
+
+    #Extracting TOD category from persons 
+    TOD_arrival = orca.get_table('persons').get_column('TOD_school_arrival')
+    TOD_departure = orca.get_table('persons').get_column('TOD_school_departure')
+
+    #Initializing series
+    s_arrival = []
+    s_departure = []
+    
+    for x in range(1,6):
+        data_arrival = TOD_arrival[TOD_arrival == x]
+        data_departure = TOD_departure[TOD_departure == x]
+        
+        name_arrival = 'TOD_arrival_'+ str(x)
+        name_departure = 'TOD_departure_'+ str(x)
+
+        #Getting distribution parameters
+        dist_name_arrival, dist_params_arrival = TOD_distributions[name_arrival]
+        eval_name_arrival = 'st.'+ dist_name_arrival + '.rvs'
+        
+        dist_name_departure, dist_params_departure = TOD_distributions[name_departure]
+        eval_name_departure = 'st.'+ dist_name_departure + '.rvs'
+            
+        #Getting random draw from the distribution 
+        random_draw_arrival = eval(eval_name_arrival)(*dist_params_arrival[:-2], 
+                                                loc = dist_params_arrival[-2], 
+                                                scale = dist_params_arrival[-1], 
+                                                size = len(data_arrival))
+        arrival = pd.Series(random_draw_arrival, index=data_arrival.index)
+        
+        random_draw_departure = eval(eval_name_departure)(*dist_params_departure[:-2], 
+                                                loc = dist_params_departure[-2], 
+                                                scale = dist_params_departure[-1], 
+                                                size = len(data_departure))
+        departure = pd.Series(random_draw_departure, index=data_departure.index)        
+        
+        s_arrival.append(arrival)
+        s_departure.append(departure)
+        
+    s_arr = pd.concat(s_arrival)
+    s_dep = pd.concat(s_departure)
+    
+    #Adding column to persons table
+    persons.update_col('HS_ET', s_arr)
+    persons.update_col('SH_ST', s_dep)

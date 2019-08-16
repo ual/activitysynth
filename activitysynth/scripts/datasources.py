@@ -2,6 +2,8 @@ import orca
 import pandas as pd
 import numpy as np
 import os
+import random
+import pylogit as pl
 # data documentation: https://berkeley.app.box.com/notes/282712547032
 
 
@@ -355,7 +357,8 @@ def students(persons, households):
                            tables=[persons, households], 
                            columns = ['income','member_id', 'age', 
                                       'household_id','node_id_small', 
-                                      'student','zone_id_home'])
+                                      'student','zone_id_home', 'age_0_5',
+                                      'age_5_12', 'age_12_15', 'age_15_18'])
     
     df['hh_inc_under_25k'] = ((df.income > 10) & (df.income <= 25000)).astype(int)
     df['hh_inc_25_to_75k'] = ((df.income > 25000) & (df.income <= 75000)).astype(int)
@@ -421,6 +424,42 @@ def long_format(closest_schools, students, schools,beam_skims_imputed ):
              right_on = ['from_zone_id', 'to_zone_id'])
     
     return df_1 
+
+@orca.table(cache= True)
+def TOD_school_data_preparation(students):
+    """
+    Transforms students data from wide to long format for pylogit prediction
+    """
+    students = orca.get_table('students').to_frame()
+    
+    #Creating a fake alternative specific varible and its corresponding availability variable. 
+    for x in [1,2,3,4,5]:
+        name = 'tt_'+str(x)
+        av_name = 'av_'+str(x)
+        students[name] = [random.randint(1,20) for x in range(len(students))]
+        students[av_name] = 1
+        students['choice'] = [random.randint(1,5) for x in range(len(students))]
+    students.reset_index(inplace = True)
+    
+    #Preparing for wide to long format transformation
+    ind_variables = ['age_0_5', 'age_5_12','age_12_15','age_15_18']
+
+    alt_varying_variables = {u'travel_time': dict([(1, 'tt_1'),
+                                               (2, 'tt_2'),
+                                               (3, 'tt_3'),
+                                               (4, 'tt_4'),
+                                               (5, 'tt_5')])}
+
+    availability_variables = dict(zip(range(1, 6), ['av_1','av_2','av_3','av_4','av_5']))
+    
+    # Perform the desired conversion
+    df = pl.convert_wide_to_long(wide_data= students,
+                                       ind_vars = ind_variables,
+                                       alt_specific_vars = alt_varying_variables,
+                                       availability_vars = availability_variables, 
+                                       obs_id_col = 'person_id',
+                                       choice_col= 'choice')  
+    return df
 
 # Broadcasts, a.k.a. merge relationships
 orca.broadcast(

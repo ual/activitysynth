@@ -678,6 +678,26 @@ def col_11(long_format):
     return long_format['np.log1p(dist)'] * long_format['rank_8_9']
 
 
+###########################
+#  TOD school vars       #
+###########################
+@orca.column('persons')
+def age_0_5(persons):
+    return  (persons.age.between(0,4, inclusive = True )).astype(int)
+
+@orca.column('persons')
+def age_5_12(persons):
+    return  (persons.age.between(5,11, inclusive = True )).astype(int)
+
+@orca.column('persons')
+def age_12_15(persons):
+    return  (persons.age.between(12,14, inclusive = True )).astype(int)
+
+@orca.column('persons')
+def age_15_18(persons):
+    return  (persons.age.between(15,18, inclusive = True )).astype(int)
+
+
 
 
 
