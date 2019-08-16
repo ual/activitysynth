@@ -106,3 +106,4 @@ venv.bak/
 # other/misc
 data/*
 output/*
+activitysynth/notebooks/notebooks-juan/Experiments .ipynb
