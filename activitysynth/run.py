@@ -178,7 +178,9 @@ if __name__ == "__main__":
         'wlcm_simulate', 'TOD_choice_simulate',
         'TOD_distribution_simulate',
         'auto_ownership_simulate', 'primary_mode_choice_simulate',
-        'generate_activity_plans', 'SLCM_simulate']
+        'generate_activity_plans', 'SLCM_simulate', 
+        'TOD_school_arrival_simulate','TOD_school_departure_simulate',
+        'TOD_school_distribution_simulate']
 
     orca.run(
         model_steps,
