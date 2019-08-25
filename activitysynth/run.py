@@ -148,24 +148,24 @@ if __name__ == "__main__":
         orca.run(model_steps)
 
         orca.get_table('nodeswalk').to_frame().to_csv(
-            input_data_dir + input_fnames['walk_access_vars'])
+            os.path.join(input_data_dir, input_fnames['walk_access_vars']))
         orca.get_table('nodessmall').to_frame().to_csv(
-            input_data_dir + input_fnames['drive_access_vars'])
+            os.path.join(input_data_dir, input_fnames['drive_access_vars']))
 
         # skims aggregations step writes straight to the zones
         # table but we store the updated zones table separately
         orca.get_table('zones').to_frame().to_csv(
-            input_data_dir + input_fnames['zone_access_vars'])
+            os.path.join(input_data_dir, input_fnames['zone_access_vars']))
 
     elif accessibilities_mode == 'stored':
         walk_net_vars = pd.read_csv(
-            input_data_dir + input_fnames['walk_access_vars'],
+            os.path.join(input_data_dir, input_fnames['walk_access_vars']),
             index_col='osmid')
         drive_net_vars = pd.read_csv(
-            input_data_dir + input_fnames['drive_access_vars'],
+            os.path.join(input_data_dir, input_fnames['drive_access_vars']),
             index_col='osmid')
         zones = pd.read_csv(
-            input_data_dir + input_fnames['zone_access_vars'],
+            os.path.join(input_data_dir, input_fnames['zone_access_vars']),
             index_col='zone_id', dtype={'zone_id': int})
         orca.add_table('nodeswalk', walk_net_vars)
         orca.add_table('nodessmall', drive_net_vars)
