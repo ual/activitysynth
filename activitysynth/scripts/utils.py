@@ -65,9 +65,10 @@ def impute_missing_skims(mtc_skims, beam_skims_raw):
     mtc['dist'] = mtc['da_distance_AM'] * 1609.34
 
     # impute mtc zone-to-zone distances where zero-valued in beam skims
-    df.loc[df['distanceInM'] == 0, 'distanceInM'] = mtc.loc[
-        pd.MultiIndex.from_frame(df.loc[df['distanceInM'] == 0, [
-            'from_zone_id', 'to_zone_id']]), 'dist'].values
+    if len(df.loc[df['distanceInM'] == 0, 'distanceInM']) > 0:
+        df.loc[df['distanceInM'] == 0, 'distanceInM'] = mtc.loc[
+            pd.MultiIndex.from_frame(df.loc[df['distanceInM'] == 0, [
+                'from_zone_id', 'to_zone_id']]), 'dist'].values
 
     # create morning peak lookup
     df['gen_time_per_m'] = df['gen_tt'] / df['distanceInM']
