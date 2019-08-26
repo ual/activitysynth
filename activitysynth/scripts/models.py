@@ -31,7 +31,7 @@ def initialize_imputed_skims(mtc_skims):
 
         try:
             raw_skims = orca.get_table('beam_skims_raw')
-            df = impute_missing_skims(mtc_skims, raw_skims)
+            df = utils.impute_missing_skims(mtc_skims, raw_skims)
         except FileNotFoundError:
             print(
                 "Couldn't find raw skims either. Make sure there "
