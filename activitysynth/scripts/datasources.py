@@ -358,7 +358,9 @@ def students(persons, households):
                            columns = ['income','member_id', 'age', 
                                       'household_id','node_id_small', 
                                       'student','zone_id_home', 'age_0_5',
-                                      'age_5_12', 'age_12_15', 'age_15_18'])
+                                      'age_5_12', 'age_12_15', 'age_15_18', 
+                                      'female', 'minority','race_id','persons', 
+                                      'black', 'asian', 'hh_size_over_4'])
     
     df['hh_inc_under_25k'] = ((df.income > 10) & (df.income <= 25000)).astype(int)
     df['hh_inc_25_to_75k'] = ((df.income > 25000) & (df.income <= 75000)).astype(int)
@@ -442,7 +444,10 @@ def TOD_school_data_preparation(students):
     students.reset_index(inplace = True)
     
     #Preparing for wide to long format transformation
-    ind_variables = ['age_0_5', 'age_5_12','age_12_15','age_15_18']
+    ind_variables = ['age_0_5', 'age_5_12','age_12_15','age_15_18', 
+                     'minority', 'asian', 'black','hh_inc_under_25k',
+                     'hh_inc_25_to_75k', 'hh_inc_75_to_200k', 
+                     'female', 'hh_size_over_4']
 
     alt_varying_variables = {u'travel_time': dict([(1, 'tt_1'),
                                                (2, 'tt_2'),

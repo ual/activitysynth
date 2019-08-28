@@ -697,7 +697,17 @@ def age_12_15(persons):
 def age_15_18(persons):
     return  (persons.age.between(15,18, inclusive = True )).astype(int)
 
+@orca.column('persons')
+def black(persons):
+    return  (persons.race_id == 2).astype(int)
 
+@orca.column('persons')
+def asian(persons):
+    return  (persons.race_id == 6).astype(int)
+
+@orca.column('households')
+def hh_size_over_4(households):
+    return  (households.persons == 4).astype(int)
 
 
 
