@@ -154,7 +154,7 @@ def wlcm_simulate(beam_skims_imputed):
     interaction_terms = beam_skims_imputed.to_frame().rename_axis(
         ['zone_id_home', 'zone_id_work'])
 
-    m = mm.get_step('WLCM_gen_tt')
+    m = mm.get_step('WLCM_gen_tt_simple')
 
     m.run(chooser_batch_size=200000, interaction_terms=[interaction_terms])
 
