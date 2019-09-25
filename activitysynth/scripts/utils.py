@@ -1,6 +1,7 @@
 import orca
 import pandas as pd
 import numpy as np
+import math
 from urbansim.utils import misc
 
 
@@ -137,4 +138,47 @@ def age_filter(SL_long_format, schools, students):
     filter_1 = pd.Series(col.flatten()).replace(2,1).astype(bool)
     return filter_1
 
-
+@orca.injectable(cache = True)
+def school_mode_choice_table():
+    
+    #Define bradcasting
+    orca.broadcast(cast = 'household', onto = 'persons', cast_index = True, onto_on= 'household_id')
+    orca.broadcast(cast = 'zones', onto = 'persons', cast_index= True, onto_on = 'zone_id_home')
+    
+    #Merging tables 
+    df = orca.merge_tables(target = 'persons', tables = ['households', 'zones', 'persons'])
+    
+    df = pd.merge(df, orca.get_table('beam_skims_imputed').to_frame().reset_index(), how = 'left', 
+              left_on = ['zone_id_home', 'zone_id_school'], 
+              right_on = ['from_zone_id', 'to_zone_id'])
+    
+    list_var = ['sex_SMC', 'tenure_SMC', 'recent_mover', 'hispanic_head_SMC', 'income_1',
+       'race_2+races', 'race_african_american', 'race_asian',
+       'race_hawaii/pacific', 'race_indian/alaska', 'race_other', 'race_white',
+       'race_head_2+races', 'race_head_african_american', 'race_head_asian',
+       'race_head_hawaii/pacific', 'race_head_indian/alaska',
+       'race_head_other', 'race_head_white', 'age', 'persons', 'cars',
+       'workers', 'children', 'age_of_head', 'HS_ET',
+       'sum_residential_units_gen_tt_WALK_TRANSIT_15',
+       'total_jobs_gen_tt_WALK_TRANSIT_45',
+       'avg_income_gen_tt_WALK_TRANSIT_30', 'sum_residential_units',
+       'sum_persons_gen_tt_WALK_TRANSIT_15',
+       'sum_income_gen_tt_WALK_TRANSIT_15', 'sum_income_gen_tt_CAR_45',
+       'sum_persons_gen_tt_CAR_15', 'avg_income', 'total_jobs', 'sum_income',
+       'sum_persons_gen_tt_CAR_45', 'sum_income_gen_tt_WALK_TRANSIT_45',
+       'sum_residential_units_gen_tt_WALK_TRANSIT_45',
+       'avg_income_gen_tt_CAR_30', 'sum_residential_units_gen_tt_CAR_15',
+       'sum_persons_gen_tt_WALK_TRANSIT_45', 'total_jobs_gen_tt_CAR_45',
+       'total_jobs_gen_tt_CAR_15', 'sum_persons',
+       'sum_residential_units_gen_tt_CAR_45', 'sum_income_gen_tt_CAR_15',
+       'total_jobs_gen_tt_WALK_TRANSIT_15', 'gen_tt_CAR',
+       'gen_tt_DRIVE_TRANSIT', 'gen_cost_WALK_TRANSIT',
+       'gen_tt_RIDE_HAIL_TRANSIT', 'gen_cost_RIDE_HAIL_TRANSIT',
+       'gen_cost_CAR', 'gen_cost_DRIVE_TRANSIT', 'gen_cost_WALK', 'dist',
+       'gen_cost_RIDE_HAIL', 'gen_tt_RIDE_HAIL', 'gen_cost_BIKE',
+       'gen_tt_WALK', 'gen_cost_RIDE_HAIL_POOLED', 'gen_tt_WALK_TRANSIT',
+       'gen_tt_BIKE', 'gen_tt_RIDE_HAIL_POOLED'] #List of variables in the same order as in model estimation
+    
+    students = df[(df.age> 4) & (df.age <=18) & (df.student == 1)][list_var]
+    
+    return students

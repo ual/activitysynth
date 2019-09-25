@@ -615,16 +615,13 @@ def SLCM_simulate(persons):
     SLCM = pickle.load(fileObject) 
     orca.add_column('long_format', 'probabilities', SLCM.predict(orca.get_table('long_format').to_frame()))
     df = orca.get_table('long_format').to_frame()
-    school_choice = df.sort_values("probabilities", ascending=False).groupby('obs_id').agg({'school_choice_set': 'first'})
+    school_choice = df.sort_values("probabilities", ascending=False).groupby('obs_id').agg({'school_choice_set': 'first', 
+                                                                                            'school_zone_id': 'first'})
     
-    #Merging schools in the persons table 
-    persons_with_school = persons.to_frame().merge(school_choice, 
-                                                   how = 'left', 
-                                                   left_index = True, 
-                                                   right_index = True).rename(columns={'school_choice_set': 'school_id'})
-    
-    orca.add_table('persons', persons_with_school)
-
+    #Adding school choice to the persons table. 
+    persons.update_col('school_id',school_choice.school_choice_set )
+    persons.update_col('zone_id_school',school_choice.school_zone_id )
+                                                                                            
 @orca.step()
 def TOD_school_arrival_simulate(persons):
     """
@@ -729,3 +726,29 @@ def TOD_school_distribution_simulate(persons):
     #Adding column to persons table
     persons.update_col('HS_ET', s_arr)
     persons.update_col('SH_ST', s_dep)
+    
+@orca.step()
+def SMC_simulate(persons):
+    """
+      School Mode Choice simulation: Mode choice for school trips 
+      1. Drive alone
+      2. Shared
+      3. Walk
+      4. Bike
+      5. Walk to transit
+      6. Drive to transit
+      7. School Bus
+      
+    """
+    data = orca.get_injectable('school_mode_choice_table')
+    
+    #Running the simulation
+    file_Name = "/home/juan/activitysynth/activitysynth/configs/SMC_ml.pkl"
+    fileObject = open(file_Name,'rb')  
+    mode_choice = pickle.load(fileObject)
+
+    data = orca.get_injectable('school_mode_choice_table')
+    choice_col = pd.Series(mode_choice.predict(data), index = data.index )
+    
+    #Adding column to persons table
+    persons.update_col('school_mode_choice', choice_col)

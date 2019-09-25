@@ -492,3 +492,5 @@ orca.broadcast(
 
 orca.broadcast(cast='students', onto='closest_schools', cast_index = True, onto_on='obs_id')
 orca.broadcast(cast='schools', onto='closest_schools', cast_index = True, onto_on='school_choice_set')
+orca.broadcast(cast='parcels', onto='schools', cast_index = 'zone_id', onto_on='school_parcel_id')
+orca.broadcast(cast = 'zones', onto = 'persons', cast_index= True, onto_on = 'zone_id_home')

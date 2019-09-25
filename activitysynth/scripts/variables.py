@@ -3,6 +3,7 @@ from urbansim.utils import misc
 
 import pandas as pd
 import numpy as np
+import math
 
 
 #########################
@@ -626,6 +627,11 @@ def rank_5_7(schools):
 def rank_8_9(schools):
     return schools['rank'].apply(lambda x: 1 if x>7 else 0)
 
+# @orca.column('schools')
+# def school_zone_id(schools, parcels):
+#     df = orca.merge_tables(target = 'schools', tables = ['parcels', 'schools'], columns=['zone_id'])
+#     return df.zone_id
+
 ###########################
 #  Schools simulation Var #
 ###########################
@@ -709,5 +715,124 @@ def asian(persons):
 def hh_size_over_4(households):
     return  (households.persons == 4).astype(int)
 
+###########################
+# School-mode choice Model #
+###########################
+@orca.column('households', cache=True)
+def hispanic_head_SMC(households):
+    return households.hispanic_head.replace({'yes': 1, 'no': 0})
+
+@orca.column('households', cache=True)
+def tenure_SMC(households):
+    return households.tenure.replace([1, 2],[1, 0])
+
+@orca.column('households', cache=True)
+def income_1(households):
+    s = pd.cut(households.income, [-math.inf, 9999, 24999, 34999, 49999, 
+                                        74999, 99999,149999, 199999, 249999, math.inf], 
+                            labels = [1,2,3,4,5,6,7,8,9,10])
+    return s 
+
+@orca.column('households', cache=True)
+def race_head_white(households):
+    return (households.race_of_head == 1.0).astype(int)
+
+@orca.column('households', cache=True)
+def race_head_african_american(households):
+    return (households.race_of_head == 2.0).astype(int)
+
+@orca.column('households', column_name = 'race_head_indian/alaska', cache=True)
+def race_head_alaska(households):
+    return households.race_of_head.between(3.0, 5.0, inclusive=True).astype(int)
+            
+@orca.column('households', cache=True)
+def race_head_asian(households):
+    return (households.race_of_head == 6.0).astype(int)
+            
+@orca.column('households', column_name = 'race_head_hawaii/pacific', cache=True)
+def race_head_hawaii(households):
+    return (households.race_of_head == 7.0).astype(int)
+
+@orca.column('households', column_name= 'race_head_other', cache=True)
+def race_head_other(households):
+    return (households.race_of_head == 8.0).astype(int)
+
+@orca.column('households', column_name= 'race_head_2+races')
+def race_head_two(households):
+    return (households.race_of_head == 9.0).astype(int)
+
+@orca.column('persons', cache=True)
+def sex_SMC(persons):
+    return persons.sex.replace([1, 2],[0, 1])
+
+@orca.column('persons', cache=True)
+def race_white(persons):
+    return (persons.race_id == 1.0).astype(int)
+
+@orca.column('persons', cache=True)
+def race_african_american(persons):
+    return (persons.race_id == 2.0).astype(int)
+
+@orca.column('persons', column_name = 'race_indian/alaska', cache=True)
+def race_alaska(persons):
+    return persons.race_id.between(3.0, 5.0, inclusive=True).astype(int)
+            
+@orca.column('persons', cache=True)
+def race_asian(persons):
+    return (persons.race_id == 6.0).astype(int)
+            
+@orca.column('persons', column_name = 'race_hawaii/pacific', cache=True)
+def race_hawaii(persons):
+    return (persons.race_id == 7.0).astype(int)
+
+@orca.column('persons', column_name= 'race_other', cache=True)
+def race_other(persons):
+    return (persons.race_id == 8.0).astype(int)
+
+@orca.column('persons', column_name= 'race_2+races', cache=True)
+def race_two(persons):
+    return (persons.race_id == 9.0).astype(int)
 
 
+###########################
+#  Car Ownership Model    #
+###########################
+@orca.column('persons', cache=True)
+def children(persons):
+    return [1 if x < 18 else 0 for x in persons.age]
+
+@orca.column('persons', cache=True)
+def children(persons):
+    return [1 if x < 18 else 0 for x in persons.age]
+
+@orca.column('persons')
+def age_0_15(persons):
+    return  (persons.age.between(0,15, inclusive = True )).astype(int)
+
+@orca.column('persons')
+def age_16_17(persons):
+    return  (persons.age.between(16,17, inclusive = True )).astype(int)
+
+@orca.column('persons')
+def age_18_25(persons):
+    return  (persons.age.between(18,25, inclusive = True )).astype(int)
+
+@orca.column('persons')
+def age_26_40(persons):
+    return  (persons.age.between(26,40, inclusive = True )).astype(int)
+
+@orca.column('persons')
+def age_41_60(persons):
+    return  (persons.age.between(41,60, inclusive = True )).astype(int)
+
+@orca.column('persons')
+def age_60(persons):
+    return  (persons.age.between(60,100, inclusive = True )).astype(int)
+
+@orca.column('persons')
+def worker_student(persons):
+    return  (persons.worker * persons.student).astype(int)
+
+@orca.column('persons')
+def non_worker_non_student(persons):
+    return  ((~persons.worker.astype(bool))*(~persons.student.astype(bool))).astype(int)
