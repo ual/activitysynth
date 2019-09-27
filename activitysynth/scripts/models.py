@@ -356,7 +356,6 @@ def TOD_distribution_simulate():
     home-work and work-home trips.
 
     """
-
     trips = orca.get_table("trips").to_frame
     n_by_TOD = (trips.groupby("TOD")
                      .size()
