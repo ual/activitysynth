@@ -1,0 +1,63 @@
+modelmanager_version: 0.1.1
+
+saved_object:
+    filters: null
+    fitted_parameters:
+    - 2572079.6537911445
+    - 6.811090330516761
+    model:
+        fit_filters: null
+        fit_parameters:
+            Coefficient:
+                Intercept: 2572079.6537911445
+                residential_sqft: 6.811090330516761
+            Std. Error:
+                Intercept: 95615.1373295805
+                residential_sqft: 32.82704432766407
+            T-Score:
+                Intercept: 26.900339482077165
+                residential_sqft: 0.20748411774546835
+        fit_rsquared: 4.3134070350281384e-05
+        fit_rsquared_adj: -0.0009588267171545262
+        fitted: true
+        model_expression: sale_price ~ residential_sqft
+        model_type: regression
+        name: price-prediction
+        predict_filters: null
+        ytransform: null
+    model_expression: sale_price ~ residential_sqft
+    name: price-prediction
+    out_column: quiro que se guarde en esta columna
+    out_filters: null
+    out_tables: to_predcit
+    out_transform: null
+    summary_table: "                            OLS Regression Results           \
+        \                 \n==============================================================================\n\
+        Dep. Variable:             sale_price   R-squared:                       0.000\n\
+        Model:                            OLS   Adj. R-squared:                 -0.001\n\
+        Method:                 Least Squares   F-statistic:                   0.04305\n\
+        Date:                Fri, 20 Sep 2019   Prob (F-statistic):              0.836\n\
+        Time:                        16:58:54   Log-Likelihood:                -15571.\n\
+        No. Observations:                1000   AIC:                         3.115e+04\n\
+        Df Residuals:                     998   BIC:                         3.116e+04\n\
+        Df Model:                           1                                    \
+        \     \nCovariance Type:            nonrobust                            \
+        \             \n====================================================================================\n\
+        \                       coef    std err          t      P>|t|      [0.025\
+        \      0.975]\n------------------------------------------------------------------------------------\n\
+        Intercept         2.572e+06   9.56e+04     26.900      0.000    2.38e+06 \
+        \   2.76e+06\nresidential_sqft     6.8111     32.827      0.207      0.836\
+        \     -57.607      71.229\n==============================================================================\n\
+        Omnibus:                      614.001   Durbin-Watson:                   2.013\n\
+        Prob(Omnibus):                  0.000   Jarque-Bera (JB):               57.988\n\
+        Skew:                          -0.044   Prob(JB):                     2.56e-13\n\
+        Kurtosis:                       1.824   Cond. No.                     6.29e+03\n\
+        ==============================================================================\n\
+        \nWarnings:\n[1] Standard Errors assume that the covariance matrix of the\
+        \ errors is correctly specified.\n[2] The condition number is large, 6.29e+03.\
+        \ This might indicate that there are\nstrong multicollinearity or other numerical\
+        \ problems."
+    tables: buildings
+    tags: []
+    template: OLSRegressionStep
+    template_version: 0.1.1
