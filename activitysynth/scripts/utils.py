@@ -50,6 +50,11 @@ def register_skim_access_variable(
 
 
 def impute_missing_skims(mtc_skims, beam_skims_raw):
+
+    #############################################
+    ### TO DO: add CAV mode to CAR imputation ###
+    #############################################
+    
     df = beam_skims_raw.to_frame()
 
     # seconds to minutes

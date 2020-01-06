@@ -6,6 +6,7 @@ import argparse
 import s3fs
 from datetime import datetime
 import os
+from shapely.geometry import Point, LineString
 
 from activitysynth.scripts import models, datasources, variables
 
@@ -29,8 +30,8 @@ formattable_fname_dict = {
     'rentals': 'craigslist.{0}',
     'units': 'units.{0}',
     'mtc_skims': 'mtc_skims.{0}',
-    'beam_skims_raw': 'beam_skims_raw.{0}',
-    'beam_skims_imputed': 'beam_skims_imputed.{0}',
+    'beam_skims_raw': '2.skims-hacked.csv.gz',
+    'beam_skims_imputed': 'NOTGONNAFINDTHIS.{0}',
     # the following nodes and edges .csv's will be phased out and
     # replaced by travel model skims entirely
     'drive_nodes': 'drive_nodes.{0}',
@@ -175,10 +176,12 @@ if __name__ == "__main__":
         orca.add_table('zones', zones)
 
     model_steps = [
-        'wlcm_simulate', 'TOD_choice_simulate',
-        'TOD_distribution_simulate',
-        'auto_ownership_simulate', 'primary_mode_choice_simulate',
-        'generate_activity_plans']
+        'wlcm_simulate',
+        # 'TOD_choice_simulate',
+        # 'TOD_distribution_simulate',
+        # 'auto_ownership_simulate', 'primary_mode_choice_simulate',
+        # 'generate_activity_plans'
+    ]
 
     orca.run(
         model_steps,
@@ -187,3 +190,16 @@ if __name__ == "__main__":
         out_base_local=True,
         out_run_tables=output_tables,
         out_run_local=True)
+
+    print('Processing commute distances.')
+    p_home = orca.merge_tables('persons', ['persons', 'households', 'units', 'buildings', 'parcels', 'zones'], columns=['zone_id'])
+    p_home = p_home[['zone_id']]
+    p_work = orca.merge_tables('persons', ['persons', 'jobs', 'buildings', 'parcels', 'zones'], columns=['zone_id'])
+    p_work = p_work.loc[~pd.isnull(p_work['job_id']), ['zone_id']]
+    p_all = pd.merge(p_home, p_work, suffixes=('_home', '_work'), left_index=True, right_index=True)
+
+    bsi = orca.get_table('beam_skims_imputed').to_frame()
+    merged = pd.merge(p_all, bsi, left_on=['zone_id_home','zone_id_work'], right_index=True)
+    merged.to_csv('./output/commute_dists_2_skims-hacked_simple_est15.csv')
+
+

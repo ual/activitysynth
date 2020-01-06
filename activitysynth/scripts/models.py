@@ -32,12 +32,11 @@ def initialize_imputed_skims(mtc_skims):
         try:
             raw_skims = orca.get_table('beam_skims_raw')
             df = utils.impute_missing_skims(mtc_skims, raw_skims)
+            orca.add_table('beam_skims_imputed', df, cache=True)
         except FileNotFoundError:
             print(
                 "Couldn't find raw skims either. Make sure there "
                 "is a file of skims present in the data directory.")
-
-    orca.add_table('beam_skims_imputed', df, cache=True)
 
 
 @orca.step()
@@ -53,7 +52,7 @@ def skims_aggregations(beam_skims_imputed):
         for col in [
                 'total_jobs', 'sum_persons', 'sum_income',
                 'sum_residential_units']:
-            for tt in [15, 45]:
+            for tt in [5, 15, 30, 45]:
                 utils.register_skim_access_variable(
                     col + '_{0}_'.format(impedance) + str(tt),
                     col, impedance, tt, beam_skims_imputed)
