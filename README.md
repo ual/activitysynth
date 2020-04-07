@@ -52,6 +52,7 @@ This [demo notebook](https://github.com/ual/activitysynth/blob/master/notebooks/
 
 ______________________________________
 ## Work plan
+ - Replace all network aggregation vars with skim-based counterparts (we are currently using both)
  - WLCM
    - [ ] refactor for work-at-home-aware synthetic population
    - [ ] distance-based weighted sampling of alternatives
