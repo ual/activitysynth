@@ -1,0 +1,36 @@
+modelmanager_version: 0.2.dev7
+
+saved_object:
+    filters: null
+    fitted_parameters:
+    - 1.9406559172395614
+    - -0.01155205789739527
+    model_expression: s_type ~ age
+    name: Public_vs_private
+    out_column: null
+    out_filters:
+    - age <= 18
+    - age>=4
+    out_tables: test_5
+    out_transform: null
+    out_value_false: 0
+    out_value_true: 1
+    summary_table: "                           Logit Regression Results          \
+        \                 \n==============================================================================\n\
+        Dep. Variable:                 s_type   No. Observations:                \
+        \ 2097\nModel:                          Logit   Df Residuals:            \
+        \         2095\nMethod:                           MLE   Df Model:        \
+        \                    1\nDate:                Tue, 04 Feb 2020   Pseudo R-squ.:\
+        \               0.0002671\nTime:                        02:24:49   Log-Likelihood:\
+        \                -853.36\nconverged:                       True   LL-Null:\
+        \                       -853.59\n                                        LLR\
+        \ p-value:                    0.4995\n==============================================================================\n\
+        \                 coef    std err          z      P>|z|      [0.025      0.975]\n\
+        ------------------------------------------------------------------------------\n\
+        Intercept      1.9407      0.211      9.219      0.000       1.528       2.353\n\
+        age           -0.0116      0.017     -0.675      0.500      -0.045       0.022\n\
+        =============================================================================="
+    tables: train_table
+    tags: []
+    template: BinaryLogitStep
+    template_version: 0.2.dev7

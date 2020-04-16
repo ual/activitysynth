@@ -4,6 +4,7 @@ import numpy as np
 import os
 import random
 import pylogit as pl
+import s3fs
 # data documentation: https://berkeley.app.box.com/notes/282712547032
 
 
@@ -199,7 +200,7 @@ def zones(input_file_format, input_data_dir, store, input_fnames):
 @orca.table('access_indicators_ampeak', cache=True)
 def access_indicators_ampeak():
     # this filepath is hardcoded because it lives in the repo
-    am_acc = pd.read_csv('/home/data/urbanaccess_transit/access_indicators_ampeak.csv', dtype={'block_id': str})
+    am_acc = pd.read_csv('s3://baus-data/spring_2019/urbanaccess_transit/access_indicators_ampeak.csv', dtype={'block_id': str})
     am_acc.block_id = am_acc.block_id.str.zfill(15)
     am_acc.set_index('block_id', inplace=True)
     am_acc = am_acc.fillna(am_acc.median())
@@ -318,7 +319,7 @@ def walk_edges(input_file_format, input_data_dir, store, input_fnames):
 def schools():
     #Hardcoded 
     list_1 = [1459, 1685, 1746, 1749, 1750, 2006, 2063, 2327, 2662, 2679, 3378, 3379, 3381, 3432, 3454]
-    df = pd.read_csv('/home/juan/ual_model_workspace/spring-2019-models/notebooks-juan/schools_v1.csv', index_col = 'school_id')
+    df = pd.read_csv('s3://baus-data/spring_2019/schools_bay_area.csv', index_col = 'school_id')
     df = df[~df.index.isin(list_1)]
     return df 
 
@@ -335,8 +336,24 @@ def public_schools_50(netsmall, schools):
                                'public_school',
                                num_pois=50,
                                include_poi_ids=True)
-    return df
-   
+    
+    df.columns = df.columns.astype(str)
+    rank = schools.to_frame(columns='rank')
+    
+    # Get the score of the 50th closest scools to node ID
+    for col in range(1,51):
+        col_name = 'poi' + str(col)
+        df = df.merge(rank, how = 'left', left_on = col_name, right_index = True)
+        new_col_name = 'rank' + str(col)
+        df.rename(columns = {'rank': new_col_name}, inplace = True)
+        
+    # Calculate average of the 50th closest scools to node ID
+    for col in range(102,151):
+        col_name = 'mean' + str(col-100)
+        df[col_name]= df.iloc[:,100:col].mean(axis = 1)
+    
+    return df    
+
 @orca.table(cache = True) 
 def private_schools_100(netsmall, schools):
     #100 closest private schools for each node id
@@ -494,3 +511,5 @@ orca.broadcast(cast='students', onto='closest_schools', cast_index = True, onto_
 orca.broadcast(cast='schools', onto='closest_schools', cast_index = True, onto_on='school_choice_set')
 orca.broadcast(cast='parcels', onto='schools', cast_index = 'zone_id', onto_on='school_parcel_id')
 orca.broadcast(cast = 'zones', onto = 'persons', cast_index= True, onto_on = 'zone_id_home')
+orca.broadcast(cast = 'public_schools_50', onto = 'nodessmall', cast_index= True, onto_index = True)
+orca.broadcast(cast = 'nodessmall', onto = 'persons', cast_index= True, onto_on = 'node_id_small')

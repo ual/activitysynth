@@ -14,7 +14,7 @@ from urbansim_templates import modelmanager as mm
 from urbansim_templates.models import LargeMultinomialLogitStep
 from urbansim_templates.utils import update_column
 
-from activitysynth.scripts import utils
+from scripts import utils
 
 
 # load existing model steps from the model manager
@@ -29,7 +29,7 @@ def initialize_imputed_skims(mtc_skims):
         df = orca.get_table('beam_skims_imputed').to_frame()
 
     # otherwise, impute the raw skims
-    except FileNotFoundError:
+    except (FileNotFoundError, PermissionError): # PermissionError comes up when calling files from s3 that do not exist. 
         print('No imputed skims found. Creating them now.')
 
         try:

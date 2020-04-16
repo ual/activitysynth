@@ -30,7 +30,9 @@ def sum_residential_units(parcels, buildings, zones):
 def sum_persons(households, buildings, parcels, zones):
     s = households.persons.groupby(
         households.building_id).sum().groupby(
-        buildings.parcel_id).sum().groupby(parcels.zone_id).sum()
+        buildings.parcel_id).sum()
+    s.index = s.index.astype(int)
+    s = s.groupby(parcels.zone_id).sum()
     return s.reindex(zones.index).fillna(0)
 
 
@@ -38,7 +40,9 @@ def sum_persons(households, buildings, parcels, zones):
 def sum_income(households, buildings, parcels, zones):
     s = households.income.groupby(
         households.building_id).sum().groupby(
-        buildings.parcel_id).sum().groupby(parcels.zone_id).sum()
+        buildings.parcel_id).sum()
+    s.index = s.index.astype(int)
+    s = s.groupby(parcels.zone_id).sum()
     return s.reindex(zones.index).fillna(0)
 
 
@@ -46,7 +50,9 @@ def sum_income(households, buildings, parcels, zones):
 def avg_income(households, buildings, parcels, zones):
     s = households.income.groupby(
         households.building_id).mean().groupby(
-        buildings.parcel_id).mean().groupby(parcels.zone_id).mean()
+        buildings.parcel_id).mean()
+    s.index = s.index.astype(int)
+    s = s.groupby(parcels.zone_id).mean()
     return s.reindex(zones.index).fillna(0)
 
 
@@ -146,7 +152,13 @@ def pop_jobs_ratio_10000(nodessmall):
     
 @orca.column('nodessmall')
 def pop_jobs_ratio_25000(nodessmall):
-    return fill_median(nodessmall['pop_25000'] / nodessmall['jobs_25000'])                
+    return fill_median(nodessmall['pop_25000'] / nodessmall['jobs_25000'])    
+
+@orca.column('nodessmall')
+def mean_school_score_5(nodessmall):
+    
+    
+    return 
 
 ##########################
 # walk network aggregation
@@ -608,6 +620,25 @@ def info(jobs):
 def scitech(jobs):
     return jobs['sector_id'].isin([54]).astype(int)
 
+
+###########################
+#  Schools variables      #
+###########################
+@orca.column('households')
+def income_rank(households):
+    s = pd.cut(households.income, 
+               bins = [-np.inf, 10000, 25000, 35000, 50000, 75000, 
+                       100000, 150000, 200000,250000,np.inf],
+               labels = [1,2,3,4,5,6,7,8,9,10])
+    
+    return s
+
+@orca.column('nodessmall')
+def mean9(public_schools_50):
+    ''' mean score value of the 9 closest public schools to a node'''
+    s = public_schools_50.mean9
+    return s
+
 ###########################
 #  Schools variables      #
 ###########################
@@ -638,6 +669,10 @@ def rank_8_9(schools):
 # @orca.column('long_format', column_name= 'home_city')
 # def home_city(long_format):
 #     return 'san francisco'
+
+@orca.column('persons', column_name= 's_type')
+def s_type():
+    return 2.0
 
 @orca.column('long_format', column_name= 'np.log1p(gen_tt_CAR)')
 def col_1(long_format):
